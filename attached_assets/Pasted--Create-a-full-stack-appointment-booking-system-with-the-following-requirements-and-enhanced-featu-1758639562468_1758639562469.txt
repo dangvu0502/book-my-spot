@@ -1,0 +1,135 @@
+
+  Create a full-stack appointment booking system with the following requirements and enhanced features:
+
+  ## Core Requirements:
+  - Backend: Node.js with Express.js
+  - Frontend: React with modern hooks
+  - Database: SQLite with proper schema
+  - Time slots: 30-minute intervals from 7:00 AM to 7:00 PM
+  - Features: Book appointments, cancel (30-min notice), view by date
+
+  ## API Endpoints:
+  1. GET /api/appointments?date=YYYY-MM-DD - Get appointments for a date
+  2. POST /api/appointments - Create appointment
+  3. DELETE /api/appointments/:id - Cancel appointment
+  4. GET /api/appointments/slots?date=YYYY-MM-DD - Get available slots
+  5. GET /api/metrics - Dashboard metrics
+
+  ## Enhanced Features to Implement:
+
+  ### Backend Structure:
+  - Use MVC pattern with /controllers, /services, /models, /middleware folders
+  - Add validation middleware using Joi or express-validator
+  - Implement proper error handling with custom error classes
+  - Add request logging with timestamps
+  - Use environment variables for configuration
+  - Add rate limiting (10 requests per minute per IP)
+  - Include health check endpoint GET /api/health
+  - Implement soft deletes with cancelled_at timestamp
+
+  ### Database Schema:
+  CREATE TABLE appointments (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    customer_name TEXT NOT NULL,
+    customer_email TEXT NOT NULL,
+    date TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    status TEXT DEFAULT 'active',
+    notes TEXT,
+    cancelled_at DATETIME,
+    cancellation_reason TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX idx_appointments_date ON appointments(date);
+  CREATE INDEX idx_appointments_status ON appointments(status);
+
+  ### Frontend Features:
+  - Modern, responsive design using CSS Grid/Flexbox
+  - Date picker with calendar view
+  - Visual time slot grid showing available/booked status
+  - Color coding: Green (available), Red (booked), Yellow (your booking), Gray (past time)
+  - Real-time validation with helpful error messages
+  - Loading states with skeleton screens
+  - Toast notifications for success/error
+  - Mobile-responsive design
+  - Ability to see who booked each slot (privacy: show only first name + last initial)
+  - Quick actions: "Book Next Available" button
+  - Show remaining slots count for each day
+  - Highlight current time on today's schedule
+  - Add booking confirmation modal with details
+  - Allow adding optional notes when booking
+
+  ### Business Logic:
+  - Prevent booking in the past
+  - Prevent double-booking same time slot
+  - 30-minute cancellation buffer
+  - Validate email format
+  - Limit customer to max 3 active bookings
+  - Auto-cleanup old appointments (> 30 days)
+  - Business hours validation (no bookings outside 7 AM - 7 PM)
+  - Prevent bookings on weekends
+
+  ### Extra Touches:
+  - Add README.md with setup instructions
+  - Include demo data generator script
+  - Add 3-5 unit tests for core functions
+  - Use proper HTTP status codes
+  - Add CORS configuration
+  - Implement input sanitization
+  - Add API response compression
+  - Include Postman/Thunder Client collection
+
+  ### Styling:
+  Use a clean, professional design with:
+  - Primary color: #2563eb (blue)
+  - Success: #10b981 (green)  
+  - Error: #ef4444 (red)
+  - Neutral: #6b7280 (gray)
+  - Card-based layout with subtle shadows
+  - Smooth transitions on hover
+  - Accessible color contrast ratios
+
+  ### Example API Responses:
+
+  GET /api/appointments/slots?date=2024-01-15
+  {
+    "date": "2024-01-15",
+    "slots": [
+      {
+        "time": "09:00",
+        "available": true,
+        "slotId": "2024-01-15-09:00"
+      },
+      {
+        "time": "09:30",
+        "available": false,
+        "bookedBy": "John D.",
+        "slotId": "2024-01-15-09:30"
+      }
+    ],
+    "totalSlots": 24,
+    "availableSlots": 18
+  }
+
+  POST /api/appointments
+  Request: {
+    "customerName": "Jane Smith",
+    "customerEmail": "jane@email.com",
+    "date": "2024-01-15",
+    "startTime": "09:00",
+    "notes": "First appointment"
+  }
+  Response: {
+    "success": true,
+    "appointment": {
+      "id": "a1b2c3d4",
+      "confirmationCode": "APT-2024-0115-0900",
+      "details": {...}
+    }
+  }
+
+ 
+  Start with the backend API, then create the frontend. Make it production-ready and impressive for a technical
