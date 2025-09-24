@@ -31,7 +31,7 @@ export function CancelModal({
     try {
       await cancelAppointment.mutateAsync({
         id: appointmentId,
-        reason: reason.trim() || undefined
+        reason: reason.trim() || undefined,
       });
       setReason("");
       onClose();

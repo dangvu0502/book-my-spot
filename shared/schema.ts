@@ -51,6 +51,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments).pick({
     .max(500, "Notes must be under 500 characters")
     .transform(sanitizeString)
     .optional(),
+  timezoneOffset: z.number(), // Client's timezone offset in minutes (required)
 });
 
 export const selectAppointmentSchema = createSelectSchema(appointments);

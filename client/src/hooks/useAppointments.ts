@@ -34,7 +34,7 @@ export const useMetrics = () => {
 export const useCreateAppointment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
     mutationFn: (data: InsertAppointment) => appointmentApi.createAppointment(data),
     onSuccess: (data) => {
@@ -58,9 +58,9 @@ export const useCreateAppointment = () => {
 export const useCancelAppointment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) => 
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       appointmentApi.cancelAppointment(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });

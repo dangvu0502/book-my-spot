@@ -1,6 +1,6 @@
 import { storage } from '../storage';
 import { AppError } from '../middleware/errorHandler';
-import { type InsertAppointment, type TimeSlot, type AvailableSlotsResponse } from '@shared/schema';
+import { type InsertAppointment } from '@shared/schema';
 
 export class AppointmentService {
   private static readonly BUSINESS_HOURS = {
@@ -74,22 +74,38 @@ export class AppointmentService {
   }
 
   private static async validateBusinessRules(appointmentData: InsertAppointment): Promise<void> {
-    const { date, startTime } = appointmentData;
+    const { date, startTime, timezoneOffset } = appointmentData;
 
-    // Check if date is in the past
-    const appointmentDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (appointmentDate < today) {
+    // Parse hours and minutes for business hours validation
+    const [hours, minutes] = startTime.split(':').map(Number);
+
+    // Create a date string with the time
+    // JavaScript will interpret this as UTC if no timezone is specified
+    const appointmentDateTimeString = `${date}T${startTime}:00`;
+
+    // Parse this as a UTC date/time (JS default behavior)
+    const appointmentDateTime = new Date(appointmentDateTimeString);
+
+    // The user selected this time in their local timezone, but JS parsed it as UTC
+    // We need to convert from the user's local time to UTC
+    // timezoneOffset is the number of minutes to subtract from local time to get UTC
+    // For GMT+7: offset is -420 (negative because it's ahead of UTC)
+    // User's 7:00 AM in GMT+7 = UTC 00:00 (subtract 7 hours)
+    // So we subtract the offset: time - (-420) = time + 420
+    const appointmentUTC = appointmentDateTime.getTime() - (timezoneOffset * 60 * 1000);
+
+    // Get current time in UTC
+    const nowUTC = Date.now();
+
+    // Check if appointment is in the past (compare UTC times)
+    if (appointmentUTC <= nowUTC) {
       throw new AppError('Cannot book appointments in the past', 400);
     }
 
 
     // Validate business hours
-    const [hours, minutes] = startTime.split(':').map(Number);
     const { start, end } = this.BUSINESS_HOURS;
-    
+
     if (hours < start || hours >= end || (hours === end - 1 && minutes > 30)) {
       throw new AppError(`Appointments are only available between ${start}:00 AM and ${end}:00 PM`, 400);
     }

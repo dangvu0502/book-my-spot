@@ -101,11 +101,13 @@ export class MemStorage implements IStorage {
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
     const id = randomUUID();
     const now = new Date().toISOString();
-    
+
     // Calculate end time (30 minutes after start)
     const [hours, minutes] = insertAppointment.startTime.split(':').map(Number);
-    const endTime = `${String(hours).padStart(2, '0')}:${String(minutes + 30).padStart(2, '0')}`;
-    
+    const endMinutes = minutes + 30;
+    const endHours = hours + Math.floor(endMinutes / 60);
+    const endTime = `${String(endHours).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+
     const appointment: Appointment = {
       ...insertAppointment,
       id,
@@ -117,7 +119,7 @@ export class MemStorage implements IStorage {
       updatedAt: now,
       notes: insertAppointment.notes || null,
     };
-    
+
     this.appointments.set(id, appointment);
     return appointment;
   }

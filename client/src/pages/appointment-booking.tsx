@@ -4,7 +4,7 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { Calendar } from "@/components/ui/calendar";
 import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { BookingModal } from "@/components/BookingModal";
-import { SuccessAnimation } from "@/components/SuccessAnimation";
+import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { Button } from "@/components/ui/button";
 import type { TimeSlot } from "@shared/schema";
 import { formatTime } from "@/lib/dateUtils";
@@ -150,22 +150,11 @@ export default function AppointmentBooking() {
         onSuccess={handleBookingSuccess}
       />
 
-      {showConfirmationModal && confirmedAppointment && (
-        <SuccessAnimation
-          appointmentDetails={{
-            date: new Date(confirmedAppointment.date).toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            }),
-            time: formatTime(confirmedAppointment.startTime),
-            name: confirmedAppointment.customerName,
-            email: confirmedAppointment.customerEmail
-          }}
-          onClose={handleConfirmationModalClose}
-        />
-      )}
+      <ConfirmationModal
+        isOpen={showConfirmationModal}
+        onClose={handleConfirmationModalClose}
+        appointment={confirmedAppointment}
+      />
     </div>
   );
 }
