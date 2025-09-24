@@ -19,6 +19,17 @@ export const appointments = sqliteTable("appointments", {
   updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+// Helper function to sanitize HTML/script content
+const sanitizeString = (str: string) => {
+  // Remove any HTML tags and script content
+  return str
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags
+    .replace(/<[^>]+>/g, '') // Remove HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocols
+    .replace(/on\w+\s*=/gi, '') // Remove event handlers
+    .trim();
+};
+
 export const insertAppointmentSchema = createInsertSchema(appointments).pick({
   customerName: true,
   customerEmail: true,
@@ -26,11 +37,20 @@ export const insertAppointmentSchema = createInsertSchema(appointments).pick({
   startTime: true,
   notes: true,
 }).extend({
-  customerName: z.string().min(2, "Name must be at least 2 characters").max(100),
-  customerEmail: z.string().email("Invalid email format"),
+  customerName: z.string()
+    .min(2, "Name must be at least 2 characters")
+    .max(100)
+    .transform(sanitizeString)
+    .refine(val => val.length >= 2, "Name must be at least 2 characters after sanitization"),
+  customerEmail: z.string()
+    .email("Invalid email format")
+    .transform(email => email.toLowerCase().trim()),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, "Time must be in HH:MM format"),
-  notes: z.string().max(500, "Notes must be under 500 characters").optional(),
+  notes: z.string()
+    .max(500, "Notes must be under 500 characters")
+    .transform(sanitizeString)
+    .optional(),
 });
 
 export const selectAppointmentSchema = createSelectSchema(appointments);

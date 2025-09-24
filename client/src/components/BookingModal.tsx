@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { insertAppointmentSchema } from "@shared/schema";
 import type { InsertAppointment, TimeSlot } from "@shared/schema";
 import { formatTime } from "@/lib/dateUtils";
 import { useCreateAppointment } from "@/hooks/useAppointments";
+import { useKeyboardNavigation, useFocusTrap } from "@/hooks/useKeyboardNavigation";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -24,38 +25,41 @@ interface BookingModalProps {
 export function BookingModal({ isOpen, onClose, selectedSlot, selectedDate, onSuccess }: BookingModalProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const createAppointment = useCreateAppointment();
+  const dialogRef = useRef<HTMLDivElement>(null);
   
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<InsertAppointment>({
     resolver: zodResolver(insertAppointmentSchema),
+    mode: "onChange",
     defaultValues: {
       customerName: "",
       customerEmail: "",
       notes: "",
+      date: selectedDate?.toISOString().split('T')[0] || "",
+      startTime: selectedSlot?.time || "",
     },
   });
 
   const onSubmit = async (data: InsertAppointment) => {
-    if (!selectedSlot || !acceptedTerms) return;
-
-    const appointmentData: InsertAppointment = {
-      ...data,
-      date: selectedDate.toISOString().split('T')[0],
-      startTime: selectedSlot.time,
-    };
+    if (!acceptedTerms) {
+      // User hasn't accepted terms and conditions
+      return;
+    }
 
     try {
-      const result = await createAppointment.mutateAsync(appointmentData);
+      const result = await createAppointment.mutateAsync(data);
       onSuccess(result.appointment);
       reset();
       setAcceptedTerms(false);
       onClose();
     } catch (error) {
-      // Error is handled by the mutation
+      // Error is handled by the mutation hook's onError callback
+      // In production, errors should be logged to a monitoring service like Sentry
     }
   };
 
@@ -65,28 +69,48 @@ export function BookingModal({ isOpen, onClose, selectedSlot, selectedDate, onSu
     onClose();
   };
 
+  // Update form values when selectedSlot or selectedDate changes
+  useEffect(() => {
+    if (selectedDate) {
+      setValue("date", selectedDate.toISOString().split('T')[0]);
+    }
+    if (selectedSlot) {
+      setValue("startTime", selectedSlot.time);
+    }
+  }, [selectedDate, selectedSlot, setValue]);
+
+
+  // Add keyboard navigation
+  useKeyboardNavigation({
+    onEscape: handleClose,
+    enabled: isOpen
+  });
+
+  // Add focus trap for modal
+  useFocusTrap(dialogRef, isOpen);
+
   if (!selectedSlot) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md modal-backdrop">
+      <DialogContent
+        ref={dialogRef}
+        className="sm:max-w-md modal-backdrop"
+        aria-describedby="booking-form-description"
+      >
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Book Appointment</DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              data-testid="button-close-modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground" data-testid="text-selected-datetime">
-            {selectedDate.toLocaleDateString('en-US', { 
+          <DialogTitle className="flex items-center justify-between">
+            <span>Book Appointment</span>
+          </DialogTitle>
+          <p
+            className="text-sm text-muted-foreground"
+            data-testid="text-selected-datetime"
+            id="booking-form-description"
+          >
+            Booking appointment for {selectedDate.toLocaleDateString('en-US', {
               year: 'numeric',
-              month: 'long', 
-              day: 'numeric' 
+              month: 'long',
+              day: 'numeric'
             })} at {formatTime(selectedSlot.time)}
           </p>
         </DialogHeader>
@@ -99,12 +123,16 @@ export function BookingModal({ isOpen, onClose, selectedSlot, selectedDate, onSu
               {...register("customerName")}
               placeholder="Enter your full name"
               data-testid="input-customer-name"
+              aria-describedby={errors.customerName ? "customerName-error" : undefined}
+              aria-invalid={!!errors.customerName}
             />
             {errors.customerName && (
-              <p className="text-sm text-destructive mt-1">{errors.customerName.message}</p>
+              <p className="text-sm text-destructive mt-1" id="customerName-error" role="alert">
+                {errors.customerName.message}
+              </p>
             )}
           </div>
-          
+
           <div>
             <Label htmlFor="customerEmail">Email Address</Label>
             <Input
@@ -113,9 +141,13 @@ export function BookingModal({ isOpen, onClose, selectedSlot, selectedDate, onSu
               {...register("customerEmail")}
               placeholder="Enter your email"
               data-testid="input-customer-email"
+              aria-describedby={errors.customerEmail ? "customerEmail-error" : undefined}
+              aria-invalid={!!errors.customerEmail}
             />
             {errors.customerEmail && (
-              <p className="text-sm text-destructive mt-1">{errors.customerEmail.message}</p>
+              <p className="text-sm text-destructive mt-1" id="customerEmail-error" role="alert">
+                {errors.customerEmail.message}
+              </p>
             )}
           </div>
           
@@ -128,9 +160,16 @@ export function BookingModal({ isOpen, onClose, selectedSlot, selectedDate, onSu
               className="resize-none"
               rows={3}
               data-testid="input-notes"
+              aria-describedby={errors.notes ? "notes-error" : "notes-help"}
+              aria-invalid={!!errors.notes}
             />
+            <p id="notes-help" className="text-xs text-muted-foreground mt-1">
+              Optional: Any special requests or requirements
+            </p>
             {errors.notes && (
-              <p className="text-sm text-destructive mt-1">{errors.notes.message}</p>
+              <p className="text-sm text-destructive mt-1" id="notes-error" role="alert">
+                {errors.notes.message}
+              </p>
             )}
           </div>
           
@@ -140,10 +179,16 @@ export function BookingModal({ isOpen, onClose, selectedSlot, selectedDate, onSu
               checked={acceptedTerms}
               onCheckedChange={(checked) => setAcceptedTerms(!!checked)}
               data-testid="checkbox-terms"
+              aria-describedby="terms-description"
+              required
             />
-            <Label htmlFor="terms" className="text-sm">
+            <Label htmlFor="terms" className="text-sm" id="terms-description">
               I agree to the{" "}
-              <button type="button" className="text-primary hover:underline">
+              <button
+                type="button"
+                className="text-primary hover:underline"
+                aria-label="View terms and conditions (opens in new window)"
+              >
                 terms and conditions
               </button>
             </Label>

@@ -8,3 +8,4 @@ vite.config.ts.*
 .claude
 .bmad-core
 .env
+/screenshots

@@ -16,21 +16,18 @@ export class AppointmentService {
     // Validate business rules
     await this.validateBusinessRules(appointmentData);
 
-    // Check if slot is available
-    const isAvailable = await storage.isSlotAvailable(appointmentData.date, appointmentData.startTime);
-    if (!isAvailable) {
-      throw new AppError('This time slot is already booked', 409);
-    }
-
     // Check customer booking limit
     const customerBookings = await storage.getActiveAppointmentCountForEmail(appointmentData.customerEmail);
     if (customerBookings >= this.MAX_BOOKINGS_PER_CUSTOMER) {
       throw new AppError(`Maximum of ${this.MAX_BOOKINGS_PER_CUSTOMER} active bookings per customer`, 400);
     }
 
-    // Create appointment
-    const appointment = await storage.createAppointment(appointmentData);
-    
+    // Atomically check and create appointment to prevent race conditions
+    const appointment = await storage.createAppointmentIfAvailable(appointmentData);
+    if (!appointment) {
+      throw new AppError('This time slot is already booked', 409);
+    }
+
     // Generate confirmation code
     const confirmationCode = this.generateConfirmationCode(appointment);
 
@@ -89,11 +86,6 @@ export class AppointmentService {
       throw new AppError('Cannot book appointments in the past', 400);
     }
 
-    // Check if it's a weekend
-    const dayOfWeek = targetDate.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      throw new AppError('Appointments are not available on weekends', 400);
-    }
 
     // Get existing appointments for the date
     const existingAppointments = await storage.getAppointmentsByDate(date);
@@ -158,11 +150,6 @@ export class AppointmentService {
       throw new AppError('Cannot book appointments in the past', 400);
     }
 
-    // Check if it's a weekend
-    const dayOfWeek = appointmentDate.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      throw new AppError('Appointments are not available on weekends', 400);
-    }
 
     // Validate business hours
     const [hours, minutes] = startTime.split(':').map(Number);

@@ -93,65 +93,47 @@
   }
 }
 
-.skeleton {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-  animation: loading 1.5s infinite;
-}
+@layer components {
+  .time-slot-card--available {
+    @apply bg-blue-50 border border-blue-200 text-blue-700;
+  }
 
-@keyframes loading {
-  0% { background-position: -200px 0; }
-  100% { background-position: 200px 0; }
-}
+  .time-slot-card--booked {
+    @apply bg-red-50 border border-red-200 text-red-700;
+  }
 
-.time-slot {
-  transition: all 0.2s ease-in-out;
-}
+  /* Dark mode styles for time slots */
+  .dark .time-slot-card--available {
+    @apply bg-slate-800 border border-slate-600 text-slate-200;
+  }
 
-.time-slot:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+  .dark .time-slot-card--booked {
+    @apply bg-slate-700 border border-slate-500 text-slate-300;
+  }
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-}
+  /* Subtle hover states for time slots */
+  .time-slot-card--available:hover {
+    background-color: rgb(219 234 254) !important;
+    color: rgb(29 78 216) !important;
+    transform: translateY(-1px) !important;
+    transition: all 0.15s ease !important;
+  }
 
-.time-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
-}
+  .time-slot-card--booked:hover {
+    background-color: rgb(254 226 226) !important;
+    color: rgb(185 28 28) !important;
+    cursor: not-allowed !important;
+  }
 
-@media (max-width: 768px) {
-  .time-grid {
-    grid-template-columns: repeat(2, 1fr);
+  /* Dark mode hover states */
+  .dark .time-slot-card--available:hover {
+    background-color: rgb(71 85 105) !important;
+    color: rgb(226 232 240) !important;
+  }
+
+  .dark .time-slot-card--booked:hover {
+    background-color: rgb(51 65 85) !important;
+    color: rgb(203 213 225) !important;
   }
 }
 
-.current-time-indicator {
-  position: relative;
-}
-
-.current-time-indicator::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -8px;
-  width: 4px;
-  height: 4px;
-  background-color: hsl(var(--primary));
-  border-radius: 50%;
-  transform: translateY(-50%);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.modal-backdrop {
-  backdrop-filter: blur(4px);
-}

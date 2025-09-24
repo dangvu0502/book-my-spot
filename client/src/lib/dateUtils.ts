@@ -27,7 +27,7 @@ export const generateCalendarDays = (currentDate: Date): Date[] => {
 };
 
 export const isDateSelectable = (date: Date): boolean => {
-  return !isBefore(date, new Date()) && !isWeekend(date);
+  return !isBefore(date, new Date());
 };
 
 export const isCurrentTimeSlot = (date: Date, timeSlot: string): boolean => {

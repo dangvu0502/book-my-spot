@@ -1,5 +1,6 @@
 import { Bell, Calendar, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Header() {
   return (
@@ -12,25 +13,17 @@ export function Header() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">AppointmentPro</h1>
-              <p className="text-sm text-muted-foreground">Professional Booking System</p>
             </div>
           </div>
           
           <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              data-testid="button-notifications"
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
+            <ThemeToggle />
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
               <span className="text-sm font-medium hidden sm:inline" data-testid="text-username">
-                John Doe
+                Matt
               </span>
             </div>
           </div>

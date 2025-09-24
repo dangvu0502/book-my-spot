@@ -1,7 +1,8 @@
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "./EmptyState";
 import { useAvailableSlots } from "@/hooks/useAppointments";
 import { formatDate, formatTime, isCurrentTimeSlot, getTimeSlotStatus } from "@/lib/dateUtils";
 import type { TimeSlot } from "@shared/schema";
@@ -17,15 +18,15 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="animate-fade-in">
         <CardHeader>
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-6 w-48 skeleton" />
+          <Skeleton className="h-4 w-32 skeleton mt-2" />
         </CardHeader>
         <CardContent>
           <div className="time-grid">
             {[...Array(12)].map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-lg" />
+              <Skeleton key={i} className="h-16 rounded-lg skeleton" style={{ animationDelay: `${i * 50}ms` }} />
             ))}
           </div>
         </CardContent>
@@ -45,6 +46,16 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
 
   if (!data) return null;
 
+  // Show empty state if no slots available
+  if (data.slots.length === 0) {
+    return (
+      <EmptyState
+        type="no-slots"
+        message="No time slots are available for this date. Please select a different date or check back later."
+      />
+    );
+  }
+
   const morningSlots = data.slots.filter(slot => {
     const hour = parseInt(slot.time.split(':')[0]);
     return hour >= 7 && hour < 12;
@@ -60,32 +71,32 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
     return hour >= 17;
   });
 
-  const renderTimeSlot = (slot: TimeSlot) => {
+  const renderTimeSlot = (slot: TimeSlot, index: number) => {
     const status = getTimeSlotStatus(selectedDate, slot.time, !slot.available, slot.isUserBooking);
     const isCurrentTime = isCurrentTimeSlot(selectedDate, slot.time);
-    
-    let buttonClass = "time-slot p-3 rounded-lg text-sm font-medium transition-all";
+
+    let buttonClass = "time-slot p-2 rounded-lg text-sm font-medium h-auto min-h-[60px]";
     let disabled = false;
-    
+
     switch (status) {
       case 'available':
-        buttonClass += " bg-success/10 border border-success/20 hover:border-success text-success";
+        buttonClass += " time-slot-card--available";
         break;
       case 'booked':
-        buttonClass += " bg-destructive/10 border border-destructive/20 text-destructive cursor-not-allowed opacity-75";
+        buttonClass += " time-slot-card--booked cursor-not-allowed";
         disabled = true;
         break;
       case 'user-booking':
-        buttonClass += " bg-warning/10 border border-warning/20 text-warning";
+        buttonClass += " time-slot-card--selected";
         break;
       case 'past':
-        buttonClass += " bg-muted/50 border border-muted text-muted-foreground cursor-not-allowed opacity-50";
+        buttonClass += " bg-muted/50 border border-muted text-muted-foreground cursor-not-allowed disabled-elegant";
         disabled = true;
         break;
     }
-    
+
     if (isCurrentTime) {
-      buttonClass += " current-time-indicator";
+      buttonClass += " ring-2 ring-blue-500 ring-offset-2";
     }
 
     return (
@@ -97,10 +108,10 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
         onClick={() => !disabled && onSlotSelect(slot)}
         data-testid={`button-timeslot-${slot.time}`}
       >
-        <div className="flex flex-col items-center">
-          <span className="font-semibold">{formatTime(slot.time)}</span>
-          <span className="text-xs opacity-75">
-            {status === 'available' ? 'Available' : 
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-semibold text-base">{formatTime(slot.time)}</span>
+          <span className="text-xs opacity-90">
+            {status === 'available' ? 'Available' :
              status === 'user-booking' ? 'Your Booking' :
              status === 'booked' ? slot.bookedBy : 'Past'}
           </span>
@@ -110,7 +121,7 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
   };
 
   return (
-    <Card>
+    <Card data-testid="time-slots-section">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -126,13 +137,13 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
           </div>
           <div className="flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-success rounded"></div>
+              <div className="w-3 h-3 bg-blue-500 dark:bg-slate-300 rounded"></div>
               <span className="text-muted-foreground">
                 Available (<span data-testid="text-available-count">{data.availableSlots}</span>)
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-destructive rounded"></div>
+              <div className="w-3 h-3 bg-destructive dark:bg-slate-400 rounded"></div>
               <span className="text-muted-foreground">
                 Booked (<span data-testid="text-booked-count">{data.totalSlots - data.availableSlots}</span>)
               </span>
@@ -144,26 +155,26 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
       <CardContent>
         {/* Morning Section */}
         {morningSlots.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center">
               <Sun className="h-4 w-4 text-warning mr-2" />
               Morning (7:00 AM - 12:00 PM)
             </h3>
-            <div className="time-grid">
-              {morningSlots.map(renderTimeSlot)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {morningSlots.map((slot, index) => renderTimeSlot(slot, index))}
             </div>
           </div>
         )}
 
         {/* Afternoon Section */}
         {afternoonSlots.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center">
               <Sun className="h-4 w-4 text-warning mr-2" />
               Afternoon (12:00 PM - 5:00 PM)
             </h3>
-            <div className="time-grid">
-              {afternoonSlots.map(renderTimeSlot)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {afternoonSlots.map((slot, index) => renderTimeSlot(slot, index + morningSlots.length))}
             </div>
           </div>
         )}
@@ -171,12 +182,12 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
         {/* Evening Section */}
         {eveningSlots.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center">
+            <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center">
               <Moon className="h-4 w-4 text-primary mr-2" />
               Evening (5:00 PM - 7:00 PM)
             </h3>
-            <div className="time-grid">
-              {eveningSlots.map(renderTimeSlot)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {eveningSlots.map((slot, index) => renderTimeSlot(slot, index + morningSlots.length + afternoonSlots.length))}
             </div>
           </div>
         )}

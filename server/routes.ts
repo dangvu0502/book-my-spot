@@ -56,7 +56,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // Error handling middleware (must be last)
-  app.use(notFound);
+  // Only apply notFound to API routes to avoid interfering with client routing
+  app.use('/api/*', notFound);
   app.use(errorHandler);
 
   const httpServer = createServer(app);
