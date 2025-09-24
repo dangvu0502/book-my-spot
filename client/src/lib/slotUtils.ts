@@ -30,7 +30,8 @@ export function calculateAvailableSlots(appointments: Appointment[], date: strin
         time: timeString,
         available: !appointment,
         bookedBy: appointment ? appointment.customerName : undefined,
-        isUserBooking: false // This would need to be determined based on current user
+        isUserBooking: false, // This would need to be determined based on current user
+        appointmentId: appointment?.id
       };
 
       slots.push(slot);

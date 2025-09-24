@@ -1,11 +1,13 @@
-import { Sun, Moon, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Sun, Moon, RefreshCw, X } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "./EmptyState";
-import { useAvailableSlots } from "@/hooks/useAppointments";
+import { useAvailableSlots, useCancelAppointment } from "@/hooks/useAppointments";
 import { formatDate, formatTime, isCurrentTimeSlot, getTimeSlotStatus } from "@/lib/dateUtils";
 import type { TimeSlot } from "@shared/schema";
+import { CancelModal } from "./CancelModal";
 
 interface TimeSlotGridProps {
   selectedDate: Date;
@@ -15,6 +17,13 @@ interface TimeSlotGridProps {
 export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) {
   const dateString = formatDate(selectedDate);
   const { data, isLoading, error } = useAvailableSlots(dateString);
+  const cancelAppointment = useCancelAppointment();
+  const [cancelModalData, setCancelModalData] = useState<{
+    isOpen: boolean;
+    appointmentId: string;
+    customerName: string;
+    time: string;
+  }>({ isOpen: false, appointmentId: "", customerName: "", time: "" });
 
   if (isLoading) {
     return (
@@ -71,11 +80,11 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
     return hour >= 17;
   });
 
-  const renderTimeSlot = (slot: TimeSlot, index: number) => {
+  const renderTimeSlot = (slot: TimeSlot) => {
     const status = getTimeSlotStatus(selectedDate, slot.time, !slot.available, slot.isUserBooking);
     const isCurrentTime = isCurrentTimeSlot(selectedDate, slot.time);
 
-    let buttonClass = "time-slot p-2 rounded-lg text-sm font-medium h-auto min-h-[60px]";
+    let buttonClass = "time-slot p-2 rounded-lg text-sm font-medium w-full h-auto";
     let disabled = false;
 
     switch (status) {
@@ -100,23 +109,43 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
     }
 
     return (
-      <Button
-        key={slot.slotId}
-        variant="ghost"
-        className={buttonClass}
-        disabled={disabled}
-        onClick={() => !disabled && onSlotSelect(slot)}
-        data-testid={`button-timeslot-${slot.time}`}
-      >
-        <div className="flex flex-col items-center gap-1">
-          <span className="font-semibold text-base">{formatTime(slot.time)}</span>
-          <span className="text-xs opacity-90">
-            {status === 'available' ? 'Available' :
-             status === 'user-booking' ? 'Your Booking' :
-             status === 'booked' ? slot.bookedBy : 'Past'}
-          </span>
-        </div>
-      </Button>
+      <div id={slot.slotId} className="relative">
+        <Button
+          variant="ghost"
+          className={buttonClass}
+          disabled={disabled}
+          onClick={() => !disabled && status === 'available' && onSlotSelect(slot)}
+          data-testid={`button-timeslot-${slot.time}`}
+        >
+          <div className="flex flex-col items-center gap-1 w-full">
+            <span className="font-semibold text-base">{formatTime(slot.time)}</span>
+            <span className="text-xs opacity-90">
+              {status === 'available' ? 'Available' :
+               status === 'user-booking' ? 'Your Booking' :
+               status === 'booked' ? slot.bookedBy : 'Past'}
+            </span>
+          </div>
+        </Button>
+        {status === 'booked' && slot.appointmentId && (
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute -top-1 -right-1 h-6 w-6 rounded-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCancelModalData({
+                isOpen: true,
+                appointmentId: slot.appointmentId || "",
+                customerName: slot.bookedBy || "",
+                time: slot.time
+              });
+            }}
+            title="Cancel appointment"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
     );
   };
 
@@ -161,7 +190,7 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
               Morning (7:00 AM - 12:00 PM)
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {morningSlots.map((slot, index) => renderTimeSlot(slot, index))}
+              {morningSlots.map((slot) => renderTimeSlot(slot))}
             </div>
           </div>
         )}
@@ -174,7 +203,7 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
               Afternoon (12:00 PM - 5:00 PM)
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {afternoonSlots.map((slot, index) => renderTimeSlot(slot, index + morningSlots.length))}
+              {afternoonSlots.map((slot) => renderTimeSlot(slot))}
             </div>
           </div>
         )}
@@ -187,11 +216,22 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
               Evening (5:00 PM - 7:00 PM)
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {eveningSlots.map((slot, index) => renderTimeSlot(slot, index + morningSlots.length + afternoonSlots.length))}
+              {eveningSlots.map((slot) => renderTimeSlot(slot))}
             </div>
           </div>
         )}
       </CardContent>
+
+      {cancelModalData.isOpen && (
+        <CancelModal
+          isOpen={cancelModalData.isOpen}
+          onClose={() => setCancelModalData({ isOpen: false, appointmentId: "", customerName: "", time: "" })}
+          appointmentId={cancelModalData.appointmentId}
+          customerName={cancelModalData.customerName}
+          time={cancelModalData.time}
+          date={dateString}
+        />
+      )}
     </Card>
   );
 }
