@@ -34,7 +34,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.appointments = new Map();
     this.slotLocks = new Map();
-    this.seedData();
+    // this.seedData();
   }
 
   private seedData() {

@@ -13,9 +13,6 @@ const appointmentQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
 });
 
-const slotsQuerySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Global middleware
@@ -31,8 +28,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get('/api/health', AppointmentController.healthCheck);
 
-  // Appointment routes
-  app.get('/api/appointments', 
+  // Appointment routes - returns both appointments and available slots
+  app.get('/api/appointments',
     validateQuery(appointmentQuerySchema),
     AppointmentController.getAppointments
   );
@@ -44,11 +41,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/appointments/:id',
     AppointmentController.cancelAppointment
-  );
-
-  app.get('/api/appointments/slots',
-    validateQuery(slotsQuerySchema),
-    AppointmentController.getAvailableSlots
   );
 
   app.get('/api/metrics',

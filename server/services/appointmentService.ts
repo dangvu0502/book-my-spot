@@ -9,18 +9,12 @@ export class AppointmentService {
     slotDuration: 30 // 30 minutes
   };
 
-  private static readonly MAX_BOOKINGS_PER_CUSTOMER = 3;
+  // private static readonly MAX_BOOKINGS_PER_CUSTOMER = 3;
   private static readonly CANCELLATION_BUFFER_MINUTES = 30;
 
   static async createAppointment(appointmentData: InsertAppointment): Promise<any> {
     // Validate business rules
     await this.validateBusinessRules(appointmentData);
-
-    // Check customer booking limit
-    const customerBookings = await storage.getActiveAppointmentCountForEmail(appointmentData.customerEmail);
-    if (customerBookings >= this.MAX_BOOKINGS_PER_CUSTOMER) {
-      throw new AppError(`Maximum of ${this.MAX_BOOKINGS_PER_CUSTOMER} active bookings per customer`, 400);
-    }
 
     // Atomically check and create appointment to prevent race conditions
     const appointment = await storage.createAppointmentIfAvailable(appointmentData);
@@ -71,65 +65,6 @@ export class AppointmentService {
     };
   }
 
-  static async getAvailableSlots(date: string): Promise<AvailableSlotsResponse> {
-    // Validate date format
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      throw new AppError('Invalid date format. Use YYYY-MM-DD', 400);
-    }
-
-    // Check if date is in the past
-    const targetDate = new Date(date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (targetDate < today) {
-      throw new AppError('Cannot book appointments in the past', 400);
-    }
-
-
-    // Get existing appointments for the date
-    const existingAppointments = await storage.getAppointmentsByDate(date);
-    
-    // Generate all possible time slots
-    const slots: TimeSlot[] = [];
-    const { start, end, slotDuration } = this.BUSINESS_HOURS;
-    
-    for (let hour = start; hour < end; hour++) {
-      for (let minute = 0; minute < 60; minute += slotDuration) {
-        const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        const slotId = `${date}-${timeString}`;
-        
-        // Check if this slot is booked
-        const existingAppointment = existingAppointments.find(apt => apt.startTime === timeString);
-        
-        if (existingAppointment) {
-          slots.push({
-            time: timeString,
-            available: false,
-            bookedBy: this.anonymizeCustomerName(existingAppointment.customerName),
-            slotId,
-            appointmentId: existingAppointment.id
-          });
-        } else {
-          slots.push({
-            time: timeString,
-            available: true,
-            slotId
-          });
-        }
-      }
-    }
-
-    const availableSlots = slots.filter(slot => slot.available).length;
-
-    return {
-      date,
-      slots,
-      totalSlots: slots.length,
-      availableSlots
-    };
-  }
-
   static async getAppointmentsByDate(date: string) {
     return await storage.getAppointmentsByDate(date);
   }
@@ -171,13 +106,4 @@ export class AppointmentService {
     return `APT-${dateStr}-${timeStr}`;
   }
 
-  private static anonymizeCustomerName(fullName: string): string {
-    const parts = fullName.trim().split(' ');
-    if (parts.length === 1) {
-      return parts[0].charAt(0).toUpperCase() + '.';
-    }
-    const firstName = parts[0];
-    const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
-    return `${firstName} ${lastInitial}.`;
-  }
 }

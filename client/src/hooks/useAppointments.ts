@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { calculateAvailableSlots } from '@/lib/slotUtils';
 import type { InsertAppointment } from '@shared/schema';
 
 export const useAppointments = (date: string) => {
@@ -13,9 +14,13 @@ export const useAppointments = (date: string) => {
 
 export const useAvailableSlots = (date: string) => {
   return useQuery({
-    queryKey: ['/api/appointments/slots', date],
-    queryFn: () => appointmentApi.getAvailableSlots(date),
+    queryKey: ['/api/appointments', date],
+    queryFn: () => appointmentApi.getAppointments(date),
     enabled: !!date,
+    select: (data) => {
+      const appointments = data.appointments || [];
+      return calculateAvailableSlots(appointments, date);
+    }
   });
 };
 

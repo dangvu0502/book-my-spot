@@ -17,10 +17,6 @@ export const appointmentApi = {
     return await response.json();
   },
 
-  async getAvailableSlots(date: string): Promise<AvailableSlotsResponse> {
-    const response = await apiRequest("GET", `/api/appointments/slots?date=${date}`);
-    return await response.json();
-  },
 
   async getMetrics(): Promise<{ success: boolean; metrics: AppointmentMetrics }> {
     const response = await apiRequest("GET", "/api/metrics");

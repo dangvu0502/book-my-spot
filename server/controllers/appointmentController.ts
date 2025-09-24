@@ -7,9 +7,6 @@ const appointmentQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
 });
 
-const slotsQuerySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-});
 
 export class AppointmentController {
   static async createAppointment(req: Request, res: Response, next: NextFunction) {
@@ -25,7 +22,7 @@ export class AppointmentController {
     try {
       const { date } = appointmentQuerySchema.parse(req.query);
       const appointments = await AppointmentService.getAppointmentsByDate(date);
-      
+
       res.json({
         success: true,
         date,
@@ -48,16 +45,6 @@ export class AppointmentController {
     }
   }
 
-  static async getAvailableSlots(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { date } = slotsQuerySchema.parse(req.query);
-      const result = await AppointmentService.getAvailableSlots(date);
-      
-      res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
 
   static async getMetrics(req: Request, res: Response, next: NextFunction) {
     try {
