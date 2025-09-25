@@ -18,7 +18,7 @@ import {
   useKeyboardNavigation,
   useFocusTrap,
 } from "@/hooks/useKeyboardNavigation";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 
 interface BookingModalProps {
   isOpen: boolean;
