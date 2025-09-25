@@ -343,4 +343,87 @@ describe('timeValidation', () => {
       expect(checkAppointmentOverlap(appointmentData.startTime, 30, existingAppointments)).toBe(false);
     });
   });
+
+  describe('timezone date validation regression tests', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    it('should correctly validate appointments on current day in user timezone', () => {
+      // Regression test for bug where local date was converted to UTC date
+      // causing "07:00" on today to be rejected as "not available"
+
+      // Set current time to 6 AM in New York timezone
+      const mockNow = new Date('2024-07-15T06:00:00-04:00'); // 6 AM EDT = 10 AM UTC
+      vi.setSystemTime(mockNow);
+
+      const userTimezone = 'America/New_York'; // EDT
+      const todayLocal = '2024-07-15'; // Today in local timezone
+
+      // These times should NOT be in the past on the same day
+      expect(isAppointmentInPast(todayLocal, '07:00', userTimezone)).toBe(false);
+      expect(isAppointmentInPast(todayLocal, '08:00', userTimezone)).toBe(false);
+      expect(isAppointmentInPast(todayLocal, '14:30', userTimezone)).toBe(false);
+
+      // Times earlier than current time (6 AM) should be in the past
+      expect(isAppointmentInPast(todayLocal, '05:00', userTimezone)).toBe(true);
+      expect(isAppointmentInPast(todayLocal, '05:59', userTimezone)).toBe(true);
+    });
+
+    it('should prevent regression where local date was incorrectly converted to UTC date', () => {
+      // This test ensures that when we validate appointments on "today",
+      // we use the local date, not accidentally convert it to UTC date first
+
+      // Use a known timezone where DST behavior is predictable
+      const mockNow = new Date('2024-07-15T10:00:00Z'); // 10 AM UTC = 6 AM EST
+      vi.setSystemTime(mockNow);
+
+      const userTimezone = 'America/New_York';
+      const todayLocal = '2024-07-15'; // Today in local timezone
+
+      // This should work: 7 AM today in EST should not be in the past when it's currently 6 AM EST
+      expect(isAppointmentInPast(todayLocal, '07:00', userTimezone)).toBe(false);
+
+      // And times clearly before current time should be in past
+      expect(isAppointmentInPast(todayLocal, '05:00', userTimezone)).toBe(true);
+    });
+
+    it('should handle cross-timezone validation correctly', () => {
+      // Test with different timezones to ensure UTC conversion works
+      const mockNow = new Date('2024-07-15T08:00:00Z'); // 8 AM UTC
+      vi.setSystemTime(mockNow);
+
+      // Bangkok is UTC+7, so 8 AM UTC = 3 PM Bangkok
+      const bangkokDate = '2024-07-15';
+      expect(isAppointmentInPast(bangkokDate, '16:00', 'Asia/Bangkok')).toBe(false); // 4 PM Bangkok
+      expect(isAppointmentInPast(bangkokDate, '14:00', 'Asia/Bangkok')).toBe(true);  // 2 PM Bangkok (before 3 PM)
+
+      // New York is UTC-4 in summer, so 8 AM UTC = 4 AM New York
+      const nyDate = '2024-07-15';
+      expect(isAppointmentInPast(nyDate, '05:00', 'America/New_York')).toBe(false); // 5 AM NY
+      expect(isAppointmentInPast(nyDate, '03:00', 'America/New_York')).toBe(true);  // 3 AM NY (before 4 AM)
+    });
+
+    it('should validate business hours regardless of timezone', () => {
+      // Business hours validation should work consistently across timezones
+      // This ensures the frontend validation matches backend validation
+
+      const testTimes = ['07:00', '07:30', '12:00', '18:30', '19:00'];
+
+      testTimes.forEach(time => {
+        const isValid = isValidTimeFormat(time);
+        const withinHours = isWithinBusinessHours(time);
+
+        expect(isValid).toBe(true); // All test times should be valid format
+
+        if (time === '19:00') {
+          // 19:00 is at closing time, should not be within business hours
+          expect(withinHours).toBe(false);
+        } else {
+          // All others should be within business hours
+          expect(withinHours).toBe(true);
+        }
+      });
+    });
+  });
 });

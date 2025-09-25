@@ -8,9 +8,13 @@ import {
   timeToMinutes,
   hasTimeOverlap,
   minutesToTime,
-  BUSINESS_HOURS
+  BUSINESS_HOURS,
 } from "@shared/timeValidation";
-import type { Appointment, GetAppointmentsByDateResponse } from "@shared/schema";
+import type {
+  Appointment,
+  GetAppointmentsByDateResponse,
+} from "@shared/schema";
+import { DateTime } from "luxon";
 
 interface UseTimeSlotLogicProps {
   selectedDate: Date;
@@ -27,26 +31,30 @@ function calculateAvailability(params: {
 
   if (!data || !timeValue) return null;
 
-  // Use shared validation functions
   if (!isValidTimeFormat(timeValue)) return false;
   if (!isWithinBusinessHours(timeValue, duration)) return false;
 
-  // Check if time is in the past using timezone-aware validation
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const dateString = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-  if (isAppointmentInPast(dateString, timeValue, userTimezone)) return false;
+  const localDateString = DateTime.fromJSDate(selectedDate).toISODate()!;
+  if (isAppointmentInPast(localDateString, timeValue, userTimezone))
+    return false;
 
   // Check against existing appointments
   const selectedStartMinutes = timeToMinutes(timeValue);
   const selectedEndMinutes = selectedStartMinutes + duration;
 
   const hasConflict = data.appointments?.some((apt: Appointment) => {
-    if (apt.status !== 'active') return false;
+    if (apt.status !== "active") return false;
 
     const aptStartMinutes = timeToMinutes(apt.startTime);
     const aptEndMinutes = timeToMinutes(apt.endTime);
 
-    return hasTimeOverlap(selectedStartMinutes, selectedEndMinutes, aptStartMinutes, aptEndMinutes);
+    return hasTimeOverlap(
+      selectedStartMinutes,
+      selectedEndMinutes,
+      aptStartMinutes,
+      aptEndMinutes,
+    );
   });
 
   return !hasConflict;
@@ -54,23 +62,23 @@ function calculateAvailability(params: {
 
 export function useTimeSlot({
   selectedDate,
-  duration = BUSINESS_HOURS.defaultDuration
+  duration = BUSINESS_HOURS.defaultDuration,
 }: UseTimeSlotLogicProps) {
   const dateString = formatDate(selectedDate);
   const { data, isLoading } = useAppointments(dateString);
 
   const [timeValue, setTimeValue] = useState<string>("09:00");
 
-  const existingBookings = data?.appointments?.filter(
-    (apt: Appointment) => apt.status === 'active'
-  ) || [];
+  const existingBookings =
+    data?.appointments?.filter((apt: Appointment) => apt.status === "active") ||
+    [];
 
   // Calculate availability
   const isAvailable = calculateAvailability({
     timeValue,
     data,
     selectedDate,
-    duration
+    duration,
   });
 
   const findNextAvailable = () => {
@@ -86,7 +94,10 @@ export function useTimeSlot({
       searchStart = Math.max(currentMinutes + 15, searchStart); // At least 15 mins from now
     }
 
-    const appointments = data.appointments?.filter((apt: Appointment) => apt.status === 'active') || [];
+    const appointments =
+      data.appointments?.filter(
+        (apt: Appointment) => apt.status === "active",
+      ) || [];
 
     // Sort appointments by start time
     appointments.sort((a: Appointment, b: Appointment) => {
@@ -117,7 +128,9 @@ export function useTimeSlot({
 
         // Check after last appointment
         if (!foundTime) {
-          const afterLast = timeToMinutes(appointments[appointments.length - 1].endTime);
+          const afterLast = timeToMinutes(
+            appointments[appointments.length - 1].endTime,
+          );
           const slotStart = Math.max(afterLast, searchStart);
           if (slotStart + duration <= BUSINESS_HOURS.end * 60) {
             foundTime = slotStart;
@@ -139,7 +152,7 @@ export function useTimeSlot({
     if (!timeMatch) return null;
 
     const [_, hourStr, minuteStr] = timeMatch;
-    const selectedTime = `${hourStr.padStart(2, '0')}:${minuteStr}`;
+    const selectedTime = `${hourStr.padStart(2, "0")}:${minuteStr}`;
 
     return {
       time: selectedTime,
@@ -156,6 +169,6 @@ export function useTimeSlot({
     existingBookings,
     findNextAvailable,
     createBookingData,
-    dateString
+    dateString,
   };
 }
