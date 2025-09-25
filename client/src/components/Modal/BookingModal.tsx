@@ -260,17 +260,7 @@ export function BookingModal({
               htmlFor="terms"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              I agree to the{" "}
-              <button
-                type="button"
-                className="text-primary underline hover:text-primary/80"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // In production, this should open terms modal or navigate to terms page
-                }}
-              >
-                terms and conditions
-              </button>
+              I confirm this booking information is accurate
             </Label>
           </div>
 
