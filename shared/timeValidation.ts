@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { DateTime, Interval } from 'luxon';
 
 export const BUSINESS_HOURS = {
   start: 7,
@@ -7,64 +7,43 @@ export const BUSINESS_HOURS = {
 } as const;
 
 export function isValidTimeFormat(time: string): boolean {
-  const timeMatch = time.match(/^(\d{1,2}):(\d{2})$/);
-  if (!timeMatch) return false;
-
-  const [_, hourStr, minuteStr] = timeMatch;
-  const hour = parseInt(hourStr);
-  const minute = parseInt(minuteStr);
-
-  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+  try {
+    const dt = DateTime.fromFormat(time, 'H:mm'); // H allows single digit hours
+    return dt.isValid && dt.hour >= 0 && dt.hour <= 23 && dt.minute >= 0 && dt.minute <= 59;
+  } catch {
+    return false;
+  }
 }
 
 export function isWithinBusinessHours(time: string, duration: number = BUSINESS_HOURS.defaultDuration): boolean {
-  const timeMatch = time.match(/^(\d{1,2}):(\d{2})$/);
-  if (!timeMatch) return false;
+  try {
+    const dt = DateTime.fromFormat(time, 'H:mm');
+    if (!dt.isValid) return false;
 
-  const [_, hourStr, minuteStr] = timeMatch;
-  const hour = parseInt(hourStr);
-  const minute = parseInt(minuteStr);
+    const { hour } = dt;
 
-  // Check if start time is within business hours
-  if (hour < BUSINESS_HOURS.start || hour >= BUSINESS_HOURS.end) {
+    // Check if start time is within business hours
+    if (hour < BUSINESS_HOURS.start || hour >= BUSINESS_HOURS.end) {
+      return false;
+    }
+
+    // Check that appointment end time doesn't exceed business hours using Luxon
+    const endTime = dt.plus({ minutes: duration });
+
+    return endTime.hour < BUSINESS_HOURS.end ||
+           (endTime.hour === BUSINESS_HOURS.end && endTime.minute === 0);
+  } catch {
     return false;
   }
-
-  // Check that appointment end time doesn't exceed business hours
-  const startMinutes = hour * 60 + minute;
-  const endMinutes = startMinutes + duration;
-  const maxEndMinutes = BUSINESS_HOURS.end * 60;
-
-  return endMinutes <= maxEndMinutes;
 }
 
-export function isPastTime(time: string, date: Date): boolean {
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-
-  if (!isToday) return false;
-
-  const timeMatch = time.match(/^(\d{1,2}):(\d{2})$/);
-  if (!timeMatch) return false;
-
-  const [_, hourStr, minuteStr] = timeMatch;
-  const hour = parseInt(hourStr);
-  const minute = parseInt(minuteStr);
-
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const selectedMinutes = hour * 60 + minute;
-
-  return selectedMinutes <= currentMinutes;
-}
 
 export function calculateEndTime(startTime: string, duration: number = BUSINESS_HOURS.defaultDuration): string {
-  const [hours, minutes] = startTime.split(':').map(Number);
-  const totalMinutes = hours * 60 + minutes + duration;
+  const dt = DateTime.fromFormat(startTime, 'H:mm');
+  if (!dt.isValid) throw new Error('Invalid time format');
 
-  const endHours = Math.floor(totalMinutes / 60) % 24; // Handle 24-hour rollover
-  const endMinutes = totalMinutes % 60;
-
-  return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  const endTime = dt.plus({ minutes: duration });
+  return endTime.toFormat('HH:mm');
 }
 
 export function timeToMinutes(time: string): number {
@@ -84,7 +63,20 @@ export function hasTimeOverlap(
   start2: number,
   end2: number
 ): boolean {
-  return start1 < end2 && end1 > start2;
+  // Use Luxon Interval for overlap checking
+  const today = DateTime.now().startOf('day');
+
+  const interval1 = Interval.fromDateTimes(
+    today.plus({ minutes: start1 }),
+    today.plus({ minutes: end1 })
+  );
+
+  const interval2 = Interval.fromDateTimes(
+    today.plus({ minutes: start2 }),
+    today.plus({ minutes: end2 })
+  );
+
+  return interval1.overlaps(interval2);
 }
 
 export function createUTCDateTime(date: string, time: string, timezone: string): number {
@@ -123,3 +115,31 @@ export function checkAppointmentOverlap(
     return hasTimeOverlap(newStartMinutes, newEndMinutes, aptStartMinutes, aptEndMinutes);
   }) || false;
 }
+
+export function convertToUTCForStorage(date: string, time: string, timezone: string): {
+  utcDate: string;
+  utcTime: string;
+} {
+  const localDateTime = DateTime.fromISO(`${date}T${time}:00`, { zone: timezone });
+  const utcDateTime = localDateTime.toUTC();
+
+  return {
+    utcDate: utcDateTime.toISODate()!, // YYYY-MM-DD
+    utcTime: utcDateTime.toFormat('HH:mm'), // HH:mm
+  };
+}
+
+
+export function convertFromUTCForDisplay(utcDate: string, utcTime: string, timezone: string): {
+  localDate: string;
+  localTime: string;
+} {
+  const utcDateTime = DateTime.fromISO(`${utcDate}T${utcTime}:00Z`);
+  const localDateTime = utcDateTime.setZone(timezone);
+
+  return {
+    localDate: localDateTime.toISODate()!, // YYYY-MM-DD
+    localTime: localDateTime.toFormat('HH:mm'), // HH:mm
+  };
+}
+

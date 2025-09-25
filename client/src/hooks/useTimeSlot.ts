@@ -4,7 +4,7 @@ import { useAppointments } from "@/hooks/useAppointments";
 import {
   isValidTimeFormat,
   isWithinBusinessHours,
-  isPastTime,
+  isAppointmentInPast,
   timeToMinutes,
   hasTimeOverlap,
   minutesToTime,
@@ -30,7 +30,11 @@ function calculateAvailability(params: {
   // Use shared validation functions
   if (!isValidTimeFormat(timeValue)) return false;
   if (!isWithinBusinessHours(timeValue, duration)) return false;
-  if (isPastTime(timeValue, selectedDate)) return false;
+
+  // Check if time is in the past using timezone-aware validation
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const dateString = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+  if (isAppointmentInPast(dateString, timeValue, userTimezone)) return false;
 
   // Check against existing appointments
   const selectedStartMinutes = timeToMinutes(timeValue);

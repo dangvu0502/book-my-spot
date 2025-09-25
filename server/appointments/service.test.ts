@@ -20,16 +20,16 @@ describe('AppointmentService', () => {
 
   describe('validateBusinessRules - Timezone Handling', () => {
     it('should allow booking at midnight (00:30) for 7:00 AM same day', async () => {
-      // Simulate user at 00:30 on Sept 25, 2025 in GMT+7
+      // Simulate user at 00:30 on July 15, 2024 in GMT+7
       // They want to book for 7:00 AM the same day
-      const mockDate = new Date('2025-09-25T00:30:00+07:00');
+      const mockDate = new Date('2024-07-15T00:30:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25', // Sept 25 in local time
+        date: '2024-07-15', // July 15 in local time
         startTime: '07:00',
         timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
@@ -41,16 +41,16 @@ describe('AppointmentService', () => {
     });
 
     it('should reject booking appointments in the past', async () => {
-      // Simulate user at 15:00 on Sept 25, 2025 in GMT+7
+      // Simulate user at 15:00 on July 15, 2024 in GMT+7
       // They try to book for 14:00 PM the same day (1 hour ago)
-      const mockDate = new Date('2025-09-25T15:00:00+07:00');
+      const mockDate = new Date('2024-07-15T15:00:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '07:00', // 7 AM has already passed (it's 3 PM now)
         timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
@@ -64,15 +64,15 @@ describe('AppointmentService', () => {
     });
 
     it('should handle timezone boundaries correctly', async () => {
-      // User in GMT+7 at 23:00 on Sept 24 books for Sept 25 morning
-      const mockDate = new Date('2025-09-24T23:00:00+07:00');
+      // User in GMT+7 at 23:00 on July 14 books for July 15 morning
+      const mockDate = new Date('2024-07-14T23:00:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '07:00',
         timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
@@ -84,14 +84,14 @@ describe('AppointmentService', () => {
     });
 
     it('should reject appointments outside business hours', async () => {
-      const mockDate = new Date('2025-09-25T10:00:00+07:00');
+      const mockDate = new Date('2024-07-15T10:00:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '20:00', // 8 PM - outside business hours
         timezone: 'Asia/Bangkok',
         notes: undefined
@@ -105,14 +105,14 @@ describe('AppointmentService', () => {
 
     it('should handle different timezones correctly', async () => {
       // User in GMT+3 at 10 AM booking for 2 PM same day
-      const mockDate = new Date('2025-09-25T10:00:00+03:00');
+      const mockDate = new Date('2024-07-15T10:00:00+03:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '14:00', // 2 PM in GMT+3
         timezone: 'Europe/Moscow', // GMT+3
         notes: undefined
@@ -124,14 +124,14 @@ describe('AppointmentService', () => {
     });
 
     it('should allow appointments at any minute (dynamic time selection)', async () => {
-      const mockDate = new Date('2025-09-25T06:00:00+07:00');
+      const mockDate = new Date('2024-07-15T06:00:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '07:15',
         timezone: 'Asia/Bangkok',
         notes: undefined
@@ -142,38 +142,38 @@ describe('AppointmentService', () => {
     });
 
     it('should correctly calculate UTC time from local time and offset', async () => {
-      const mockDate = new Date('2025-09-25T00:00:00Z'); // Midnight UTC
+      const mockDate = new Date('2024-07-15T00:00:00Z'); // Midnight UTC
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
 
-      // User in GMT+7 (where it's already 7 AM on Sept 25)
+      // User in GMT+7 (where it's already 7 AM on July 15)
       // Books for 8 AM their time
       const appointmentData = {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '08:00',
         timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
       };
 
-      // 8 AM in GMT+7 is 1 AM UTC on Sept 25
+      // 8 AM in GMT+7 is 1 AM UTC on July 15
       // Current time is midnight UTC, so this is 1 hour in the future
       const validateMethod = AppointmentService['validateBusinessRules'];
       await expect(validateMethod.call(AppointmentService, appointmentData)).resolves.not.toThrow();
     });
 
     it('CRITICAL: User at midnight should be able to book morning appointments', async () => {
-      // This is the exact bug the user reported - at 00:00 on Sept 25,
+      // This is the exact bug the user reported - at 00:00 on July 15,
       // they should be able to book for 7:00 AM the same day
-      const midnightGMT7 = new Date('2025-09-25T00:00:00+07:00');
+      const midnightGMT7 = new Date('2024-07-15T00:00:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(midnightGMT7);
 
       const appointmentData = {
         customerName: 'Midnight User',
         customerEmail: 'midnight@example.com',
-        date: '2025-09-25',
+        date: '2024-07-15',
         startTime: '07:00',
         timezone: 'Asia/Bangkok', // GMT+7
         notes: 'Critical test - user reported bug'
