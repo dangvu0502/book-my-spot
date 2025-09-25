@@ -38,9 +38,10 @@ export const useCreateAppointment = () => {
       });
     },
     onError: (error: any) => {
+      const errorMessage = error.message || "Failed to book appointment";
       toast({
-        title: "Error",
-        description: error.message || "Failed to book appointment",
+        title: "Booking Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -62,9 +63,10 @@ export const useCancelAppointment = () => {
       });
     },
     onError: (error: any) => {
+      const errorMessage = error.message || "Failed to cancel appointment";
       toast({
-        title: "Error",
-        description: error.message || "Failed to cancel appointment",
+        title: "Cancellation Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     },
