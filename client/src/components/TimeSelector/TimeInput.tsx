@@ -3,32 +3,35 @@ import { Input } from "@/components/ui/input";
 interface TimeInputProps {
   value: string;
   onChange: (value: string) => void;
-  businessHours: { start: number; end: number };
+  businessHours: { start: number; end: number; defaultDuration: number };
 }
 
-export function TimeInput({
-  value,
-  onChange,
-  businessHours
-}: TimeInputProps) {
+export function TimeInput({ value, onChange, businessHours }: TimeInputProps) {
+  const minTime = `${businessHours.start.toString().padStart(2, "0")}:00`;
+  const maxTime = `${(businessHours.end - 1).toString().padStart(2, "0")}:30`;
+
   return (
     <div className="space-y-2">
-      <label htmlFor="time-input" className="text-sm font-medium">Select Time</label>
+      <label htmlFor="time-input" className="text-sm font-medium">
+        Select Time
+      </label>
       <div className="flex items-center gap-4">
         <Input
           id="time-input"
           type="time"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          min="07:00"
-          max="19:00"
+          min={minTime}
+          max={maxTime}
           className="text-lg font-medium h-12 w-32"
-          step="60"
+          step="300"
         />
         <div className="text-sm text-muted-foreground">
-          <span>30 min</span>
+          <span>{businessHours.defaultDuration} min</span>
           <span className="mx-2">•</span>
-          <span>{businessHours.start}:00-{businessHours.end}:00</span>
+          <span>
+            {businessHours.start}:00-{businessHours.end}:00
+          </span>
         </div>
       </div>
       <p className="text-xs text-muted-foreground">

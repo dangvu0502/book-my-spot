@@ -1,5 +1,6 @@
 import { useToast } from '@/hooks';
 import { appointmentApi } from '@/lib/api';
+import { convertFromUTCForDisplay } from '@shared/timeValidation';
 import type {
   CancelAppointmentResponse,
   CreateAppointmentResponse,
@@ -11,7 +12,28 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 export const useAppointments = (date: string) => {
   return useQuery<GetAppointmentsByDateResponse>({
     queryKey: [appointmentApi.baseUrl, date],
-    queryFn: () => appointmentApi.getAppointments(date),
+    queryFn: async () => {
+      const data = await appointmentApi.getAppointments(date);
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      // Convert UTC appointments to local time for display
+      const localAppointments = data.appointments.map(apt => {
+        const { localDate, localTime } = convertFromUTCForDisplay(apt.date, apt.startTime, userTimezone);
+        const { localTime: localEndTime } = convertFromUTCForDisplay(apt.date, apt.endTime, userTimezone);
+
+        return {
+          ...apt,
+          date: localDate,
+          startTime: localTime,
+          endTime: localEndTime,
+        };
+      });
+
+      return {
+        ...data,
+        appointments: localAppointments,
+      };
+    },
     enabled: !!date,
   });
 };
@@ -25,9 +47,18 @@ export const useCreateAppointment = () => {
     mutationFn: (data: InsertAppointment) => appointmentApi.createAppointment(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });
+
+      // Convert UTC response back to local time for display
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const { localDate, localTime } = convertFromUTCForDisplay(
+        data.appointment.date,
+        data.appointment.startTime,
+        userTimezone
+      );
+
       toast({
         title: "Success!",
-        description: `Appointment booked successfully for ${data.appointment.date} at ${data.appointment.startTime}`,
+        description: `Appointment booked successfully for ${localDate} at ${localTime}`,
       });
     },
     onError: (error: any) => {

@@ -16,9 +16,9 @@ interface Appointment {
   id: string;
   customerName: string;
   customerEmail: string;
-  date: string;           // YYYY-MM-DD
-  startTime: string;      // HH:mm
-  endTime: string;        // HH:mm (calculated)
+  date: string;           // YYYY-MM-DD (stored in UTC)
+  startTime: string;      // HH:mm (stored in UTC)
+  endTime: string;        // HH:mm (stored in UTC, calculated from startTime)
   status: 'active' | 'cancelled';
   notes: string | null;
   createdAt: string;      // ISO timestamp

@@ -4,13 +4,14 @@ import { useAppointments } from "@/hooks/useAppointments";
 import {
   isValidTimeFormat,
   isWithinBusinessHours,
-  isPastTime,
+  isAppointmentInPast,
   timeToMinutes,
   hasTimeOverlap,
   minutesToTime,
   BUSINESS_HOURS
 } from "@shared/timeValidation";
 import type { Appointment, GetAppointmentsByDateResponse } from "@shared/schema";
+import { DateTime } from 'luxon';
 
 interface UseTimeSlotLogicProps {
   selectedDate: Date;
@@ -27,10 +28,12 @@ function calculateAvailability(params: {
 
   if (!data || !timeValue) return null;
 
-  // Use shared validation functions
   if (!isValidTimeFormat(timeValue)) return false;
   if (!isWithinBusinessHours(timeValue, duration)) return false;
-  if (isPastTime(timeValue, selectedDate)) return false;
+
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const localDateString = DateTime.fromJSDate(selectedDate).toISODate()!;
+  if (isAppointmentInPast(localDateString, timeValue, userTimezone)) return false;
 
   // Check against existing appointments
   const selectedStartMinutes = timeToMinutes(timeValue);

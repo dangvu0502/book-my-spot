@@ -1,5 +1,5 @@
 import { type Appointment, type InsertAppointment } from "@shared/schema";
-import { calculateEndTime, BUSINESS_HOURS } from "@shared/timeValidation";
+import { calculateEndTime, convertToUTCForStorage, BUSINESS_HOURS } from "@shared/timeValidation";
 import { randomUUID } from "crypto";
 
 export class Storage {
@@ -38,7 +38,15 @@ export class Storage {
   }
 
   async createAppointmentIfAvailable(insertAppointment: InsertAppointment): Promise<Appointment | null> {
-    const slotKey = `${insertAppointment.date}-${insertAppointment.startTime}`;
+    // Convert local time to UTC for storage
+    const { utcDate, utcTime } = convertToUTCForStorage(
+      insertAppointment.date,
+      insertAppointment.startTime,
+      insertAppointment.timezone
+    );
+    const utcEndTime = calculateEndTime(utcTime, BUSINESS_HOURS.defaultDuration);
+
+    const slotKey = `${utcDate}-${utcTime}`;
 
     // Check if slot is being processed (locked)
     if (this.slotLocks.get(slotKey)) {
@@ -49,29 +57,31 @@ export class Storage {
     this.slotLocks.set(slotKey, true);
 
     try {
-      // Check if slot is available
-      const existingAppointments = await this.getAppointmentsByDate(insertAppointment.date);
-      const isAvailable = !existingAppointments.some(apt => apt.startTime === insertAppointment.startTime);
+      // Check if slot is available using UTC date
+      const existingAppointments = await this.getAppointmentsByDate(utcDate);
+      const isAvailable = !existingAppointments.some(apt => apt.startTime === utcTime);
 
       if (!isAvailable) {
         return null;
       }
 
-      // Create the appointment
+      // Create the appointment with UTC times
       const id = randomUUID();
       const now = new Date().toISOString();
-      const endTime = calculateEndTime(insertAppointment.startTime, BUSINESS_HOURS.defaultDuration);
 
       const appointment: Appointment = {
-        ...insertAppointment,
         id,
-        endTime,
+        customerName: insertAppointment.customerName,
+        customerEmail: insertAppointment.customerEmail,
+        date: utcDate,
+        startTime: utcTime,
+        endTime: utcEndTime,
         status: "active",
+        notes: insertAppointment.notes || null,
         cancelledAt: null,
         cancellationReason: null,
         createdAt: now,
         updatedAt: now,
-        notes: insertAppointment.notes || null,
       };
 
       this.appointments.set(id, appointment);

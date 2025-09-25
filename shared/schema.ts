@@ -10,9 +10,9 @@ export const appointmentSchema = z.object({
   id: z.string(),
   customerName: z.string(),
   customerEmail: z.string().email(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format
-  startTime: z.string().regex(/^\d{2}:\d{2}$/), // HH:MM format
-  endTime: z.string().regex(/^\d{2}:\d{2}$/), // HH:MM format - calculated from startTime
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format (stored in UTC)
+  startTime: z.string().regex(/^\d{2}:\d{2}$/), // HH:MM format (stored in UTC)
+  endTime: z.string().regex(/^\d{2}:\d{2}$/), // HH:MM format (stored in UTC) - calculated from startTime
   status: z.enum(["active", "cancelled"]),
   notes: z.string().nullable(),
   cancelledAt: z.string().nullable(), // ISO datetime string

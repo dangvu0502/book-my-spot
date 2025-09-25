@@ -9,7 +9,8 @@ import {
   checkAppointmentOverlap,
   isAppointmentInPast,
   isValidTimeFormat,
-  isWithinBusinessHours
+  isWithinBusinessHours,
+  convertToUTCForStorage
 } from '@shared/timeValidation';
 import { AppError } from '../middleware/errorHandler';
 import { storage } from '../storage';
@@ -95,9 +96,12 @@ export class AppointmentService {
       throw new AppError('Cannot book appointments in the past', 400);
     }
 
-    // Check for overlapping appointments
-    const existingAppointments = await storage.getAppointmentsByDate(date);
-    const hasOverlap = checkAppointmentOverlap(startTime, BUSINESS_HOURS.defaultDuration, existingAppointments || []);
+    // Convert to UTC for overlap checking since storage is in UTC
+    const { utcDate, utcTime } = convertToUTCForStorage(date, startTime, timezone);
+
+    // Check for overlapping appointments using UTC times
+    const existingAppointments = await storage.getAppointmentsByDate(utcDate);
+    const hasOverlap = checkAppointmentOverlap(utcTime, BUSINESS_HOURS.defaultDuration, existingAppointments || []);
 
     if (hasOverlap) {
       throw new AppError('This time slot overlaps with an existing appointment', 409);
