@@ -19,13 +19,13 @@ import {
   useFocusTrap,
 } from "@/hooks/useKeyboardNavigation";
 import { useToast } from "@/hooks/useToast";
+import { useModalStore } from "@/stores/modalStore";
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedSlot: TimeSlot | null;
   selectedDate: Date;
-  onSuccess: (appointment: any) => void;
 }
 
 export function BookingModal({
@@ -33,7 +33,6 @@ export function BookingModal({
   onClose,
   selectedSlot,
   selectedDate,
-  onSuccess,
 }: BookingModalProps) {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -45,6 +44,7 @@ export function BookingModal({
   }>({});
 
   const { toast } = useToast();
+  const { closeBookingModal, openConfirmationModal } = useModalStore();
 
   const createAppointment = useCreateAppointment();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -111,8 +111,8 @@ export function BookingModal({
       };
 
       const result = await createAppointment.mutateAsync(appointmentData);
-      onSuccess(result.appointment);
-      handleClose();
+      closeBookingModal();
+      openConfirmationModal(result.appointment);
     } catch (error) {
       console.error("Error booking appointment:", error);
     }

@@ -9,20 +9,13 @@ export const useAppointments = (date: string) => {
     queryKey: [appointmentApi.baseUrl, date],
     queryFn: () => appointmentApi.getAppointments(date),
     enabled: !!date,
-  });
-};
-
-export const useAvailableSlots = (date: string) => {
-  return useQuery({
-    queryKey: [appointmentApi.baseUrl, date],
-    queryFn: () => appointmentApi.getAppointments(date),
-    enabled: !!date,
     select: (data) => {
       const appointments = data.appointments || [];
       return calculateAvailableSlots(appointments, date);
     }
   });
 };
+
 
 export const useCreateAppointment = () => {
   const queryClient = useQueryClient();

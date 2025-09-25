@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { TimeSlot } from "@shared/schema";
 
 // Modal types
-export type ModalType = 'booking' | 'confirmation' | 'cancel';
+export type ModalType = 'booking' | 'confirmation' | 'cancel' | 'bookingDetails';
 
 // Modal data interfaces
 export interface BookingModalData {
@@ -21,6 +21,19 @@ export interface CancelModalData {
   date: string;
 }
 
+export interface BookingDetailsModalData {
+  appointment: {
+    id: string;
+    customerName: string;
+    customerEmail: string;
+    date: string;
+    time: string;
+    notes?: string;
+    confirmationCode?: string;
+    status: string;
+  };
+}
+
 // Modal state interface
 export interface ModalState {
   booking: {
@@ -35,6 +48,10 @@ export interface ModalState {
     isOpen: boolean;
     data: CancelModalData | null;
   };
+  bookingDetails: {
+    isOpen: boolean;
+    data: BookingDetailsModalData | null;
+  };
 }
 
 const initialState: ModalState = {
@@ -47,6 +64,10 @@ const initialState: ModalState = {
     data: null
   },
   cancel: {
+    isOpen: false,
+    data: null
+  },
+  bookingDetails: {
     isOpen: false,
     data: null
   }
@@ -93,10 +114,15 @@ export function useModals() {
     openModal('cancel', { appointmentId, customerName, time, date });
   };
 
+  const openBookingDetailsModal = (appointment: BookingDetailsModalData['appointment']) => {
+    openModal('bookingDetails', { appointment });
+  };
+
   // Close specific modals
   const closeBookingModal = () => closeModal('booking');
   const closeConfirmationModal = () => closeModal('confirmation');
   const closeCancelModal = () => closeModal('cancel');
+  const closeBookingDetailsModal = () => closeModal('bookingDetails');
 
   return {
     // State
@@ -111,17 +137,21 @@ export function useModals() {
     openBookingModal,
     openConfirmationModal,
     openCancelModal,
+    openBookingDetailsModal,
     closeBookingModal,
     closeConfirmationModal,
     closeCancelModal,
+    closeBookingDetailsModal,
 
     // Convenience getters
     isBookingOpen: modalState.booking.isOpen,
     isConfirmationOpen: modalState.confirmation.isOpen,
     isCancelOpen: modalState.cancel.isOpen,
+    isBookingDetailsOpen: modalState.bookingDetails.isOpen,
 
     bookingData: modalState.booking.data,
     confirmationData: modalState.confirmation.data,
-    cancelData: modalState.cancel.data
+    cancelData: modalState.cancel.data,
+    bookingDetailsData: modalState.bookingDetails.data
   };
 }

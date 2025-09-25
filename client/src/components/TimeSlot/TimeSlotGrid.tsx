@@ -7,6 +7,7 @@ interface TimeSlotGridProps {
   selectedDate: Date;
   onSlotSelect: (slot: TimeSlot) => void;
   onCancelClick: (slot: TimeSlot) => void;
+  onBookingDetailsClick?: (slot: TimeSlot) => void;
 }
 
 interface TimeSlotSection {
@@ -16,7 +17,7 @@ interface TimeSlotSection {
   slots: TimeSlot[];
 }
 
-export function TimeSlotGrid({ slots, selectedDate, onSlotSelect, onCancelClick }: TimeSlotGridProps) {
+export function TimeSlotGrid({ slots, selectedDate, onSlotSelect, onCancelClick, onBookingDetailsClick }: TimeSlotGridProps) {
   // Helper function to categorize slots by time of day
   const categorizeSlots = (slots: TimeSlot[]) => {
     const morning = slots.filter(slot => {
@@ -77,6 +78,7 @@ export function TimeSlotGrid({ slots, selectedDate, onSlotSelect, onCancelClick 
                   selectedDate={selectedDate}
                   onSlotSelect={onSlotSelect}
                   onCancelClick={onCancelClick}
+                  onBookingDetailsClick={onBookingDetailsClick}
                 />
               ))}
             </div>

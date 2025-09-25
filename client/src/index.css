@@ -122,7 +122,6 @@
   .time-slot-card--booked:hover {
     background-color: rgb(254 226 226) !important;
     color: rgb(185 28 28) !important;
-    cursor: not-allowed !important;
   }
 
   /* Dark mode hover states */

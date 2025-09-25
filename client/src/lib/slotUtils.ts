@@ -10,6 +10,7 @@ export function calculateAvailableSlots(appointments: Appointment[], date: strin
   slots: TimeSlot[];
   availableSlots: number;
   totalSlots: number;
+  appointments: Appointment[];
 } {
   const slots: TimeSlot[] = [];
   const bookedTimes = new Map<string, Appointment>();
@@ -43,6 +44,7 @@ export function calculateAvailableSlots(appointments: Appointment[], date: strin
   return {
     slots,
     availableSlots,
-    totalSlots: slots.length
+    totalSlots: slots.length,
+    appointments
   };
 }

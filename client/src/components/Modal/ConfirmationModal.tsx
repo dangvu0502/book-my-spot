@@ -2,11 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { formatTime } from "@/lib/dateUtils";
 import { Calendar, CheckCircle, Clock, Mail, User } from "lucide-react";
+import type { Appointment } from "@shared/schema";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  appointment: any;
+  appointment: Appointment;
 }
 
 export function ConfirmationModal({ isOpen, onClose, appointment }: ConfirmationModalProps) {

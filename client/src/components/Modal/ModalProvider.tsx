@@ -1,54 +1,64 @@
 import { BookingModal } from "./BookingModal";
 import { CancelModal } from "./CancelModal";
 import { ConfirmationModal } from "./ConfirmationModal";
-import type { ModalState } from "@/hooks/useModals";
+import { BookingDetailsModal } from "./BookingDetailsModal";
+import { useModalStore } from "@/stores/modalStore";
 
-interface ModalProviderProps {
-  modalState: ModalState;
-  onBookingClose: () => void;
-  onBookingSuccess: (appointment: any) => void;
-  onConfirmationClose: () => void;
-  onCancelClose: () => void;
-}
+export function ModalProvider() {
+  const {
+    isBookingOpen,
+    isConfirmationOpen,
+    isCancelOpen,
+    isBookingDetailsOpen,
+    bookingData,
+    confirmationData,
+    cancelData,
+    bookingDetailsData,
+    closeBookingModal,
+    closeConfirmationModal,
+    closeCancelModal,
+    closeBookingDetailsModal
+  } = useModalStore();
 
-export function ModalProvider({
-  modalState,
-  onBookingClose,
-  onBookingSuccess,
-  onConfirmationClose,
-  onCancelClose
-}: ModalProviderProps) {
   return (
     <>
       {/* Booking Modal */}
-      {modalState.booking.isOpen && modalState.booking.data && (
+      {isBookingOpen && bookingData && (
         <BookingModal
-          isOpen={modalState.booking.isOpen}
-          onClose={onBookingClose}
-          selectedSlot={modalState.booking.data.selectedSlot}
-          selectedDate={modalState.booking.data.selectedDate}
-          onSuccess={onBookingSuccess}
+          isOpen={isBookingOpen}
+          onClose={closeBookingModal}
+          selectedSlot={bookingData.selectedSlot}
+          selectedDate={bookingData.selectedDate}
         />
       )}
 
       {/* Confirmation Modal */}
-      {modalState.confirmation.isOpen && modalState.confirmation.data && (
+      {isConfirmationOpen && confirmationData && (
         <ConfirmationModal
-          isOpen={modalState.confirmation.isOpen}
-          onClose={onConfirmationClose}
-          appointment={modalState.confirmation.data.appointment}
+          isOpen={isConfirmationOpen}
+          onClose={closeConfirmationModal}
+          appointment={confirmationData.appointment}
         />
       )}
 
       {/* Cancel Modal */}
-      {modalState.cancel.isOpen && modalState.cancel.data && (
+      {isCancelOpen && cancelData && (
         <CancelModal
-          isOpen={modalState.cancel.isOpen}
-          onClose={onCancelClose}
-          appointmentId={modalState.cancel.data.appointmentId}
-          customerName={modalState.cancel.data.customerName}
-          time={modalState.cancel.data.time}
-          date={modalState.cancel.data.date}
+          isOpen={isCancelOpen}
+          onClose={closeCancelModal}
+          appointmentId={cancelData.appointmentId}
+          customerName={cancelData.customerName}
+          time={cancelData.time}
+          date={cancelData.date}
+        />
+      )}
+
+      {/* Booking Details Modal */}
+      {isBookingDetailsOpen && bookingDetailsData && (
+        <BookingDetailsModal
+          isOpen={isBookingDetailsOpen}
+          onClose={closeBookingDetailsModal}
+          appointment={bookingDetailsData.appointment}
         />
       )}
     </>

@@ -47,17 +47,6 @@ export const insertAppointmentSchema = appointmentSchema.pick({
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 
-
-// Metrics type for dashboard
-export type AppointmentMetrics = {
-  todayAppointments: number;
-  availableSlots: number;
-  totalSlots: number;
-  weeklyAppointments: number;
-  cancellations: number;
-  cancellationRate: number;
-};
-
 // Time slot type
 export type TimeSlot = {
   time: string;
@@ -66,14 +55,6 @@ export type TimeSlot = {
   slotId: string;
   isUserBooking?: boolean;
   appointmentId?: string;
-};
-
-// Available slots response
-export type AvailableSlotsResponse = {
-  date: string;
-  slots: TimeSlot[];
-  totalSlots: number;
-  availableSlots: number;
 };
 
 
