@@ -1,11 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { AppointmentService } from '../services/appointmentService';
-import { insertAppointmentSchema } from '@shared/schema';
-import { z } from 'zod';
-
-const appointmentQuerySchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-});
+import { NextFunction, Request, Response } from 'express';
+import { appointmentQuerySchema } from '@shared/schema';
+import { AppointmentService } from './service';
 
 
 export class AppointmentController {
@@ -40,21 +35,6 @@ export class AppointmentController {
       
       const result = await AppointmentService.cancelAppointment(id, reason);
       res.json(result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-
-  static async getMetrics(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { date } = req.query;
-      const metrics = await AppointmentService.getMetrics(date as string);
-      
-      res.json({
-        success: true,
-        metrics
-      });
     } catch (error) {
       next(error);
     }

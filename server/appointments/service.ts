@@ -9,7 +9,6 @@ export class AppointmentService {
     slotDuration: 30 // 30 minutes
   };
 
-  // private static readonly MAX_BOOKINGS_PER_CUSTOMER = 3;
   private static readonly CANCELLATION_BUFFER_MINUTES = 30;
 
   static async createAppointment(appointmentData: InsertAppointment): Promise<any> {
@@ -67,10 +66,6 @@ export class AppointmentService {
 
   static async getAppointmentsByDate(date: string) {
     return await storage.getAppointmentsByDate(date);
-  }
-
-  static async getMetrics(date?: string) {
-    return await storage.getMetrics(date);
   }
 
   private static async validateBusinessRules(appointmentData: InsertAppointment): Promise<void> {

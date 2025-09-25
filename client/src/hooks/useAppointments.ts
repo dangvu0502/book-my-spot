@@ -6,7 +6,7 @@ import type { InsertAppointment } from '@shared/schema';
 
 export const useAppointments = (date: string) => {
   return useQuery({
-    queryKey: ['/api/appointments', date],
+    queryKey: [appointmentApi.baseUrl, date],
     queryFn: () => appointmentApi.getAppointments(date),
     enabled: !!date,
   });
@@ -14,20 +14,13 @@ export const useAppointments = (date: string) => {
 
 export const useAvailableSlots = (date: string) => {
   return useQuery({
-    queryKey: ['/api/appointments', date],
+    queryKey: [appointmentApi.baseUrl, date],
     queryFn: () => appointmentApi.getAppointments(date),
     enabled: !!date,
     select: (data) => {
       const appointments = data.appointments || [];
       return calculateAvailableSlots(appointments, date);
     }
-  });
-};
-
-export const useMetrics = () => {
-  return useQuery({
-    queryKey: ['/api/metrics'],
-    queryFn: () => appointmentApi.getMetrics(),
   });
 };
 
@@ -38,8 +31,7 @@ export const useCreateAppointment = () => {
   return useMutation({
     mutationFn: (data: InsertAppointment) => appointmentApi.createAppointment(data),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/metrics'] });
+      queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });
       toast({
         title: "Success!",
         description: `Appointment booked successfully! Confirmation: ${data.appointment.confirmationCode}`,
@@ -63,8 +55,7 @@ export const useCancelAppointment = () => {
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       appointmentApi.cancelAppointment(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/metrics'] });
+      queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });  
       toast({
         title: "Cancelled",
         description: "Appointment cancelled successfully",

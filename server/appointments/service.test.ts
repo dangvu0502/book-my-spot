@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AppointmentService } from './appointmentService';
+import { AppointmentService } from './service';
 
 // Mock the storage module
 vi.mock('../storage', () => ({

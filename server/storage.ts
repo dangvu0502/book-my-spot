@@ -11,9 +11,6 @@ export interface IStorage {
   cancelAppointment(id: string, reason?: string): Promise<boolean>;
   deleteOldAppointments(daysOld: number): Promise<number>;
 
-  // Metrics and analytics
-  getMetrics(date?: string): Promise<AppointmentMetrics>;
-
   // Validation helpers
   isSlotAvailable(date: string, startTime: string): Promise<boolean>;
   getActiveAppointmentCountForEmail(email: string): Promise<number>;
@@ -25,11 +22,6 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private appointments: Map<string, Appointment>;
   private slotLocks: Map<string, boolean>; // For preventing race conditions
-  private static readonly BUSINESS_HOURS = {
-    start: "07:00",
-    end: "19:00",
-    slotDuration: 30, // minutes
-  };
 
   constructor() {
     this.appointments = new Map();
@@ -171,54 +163,12 @@ export class MemStorage implements IStorage {
     return appointments.length;
   }
 
-  async getMetrics(date?: string): Promise<AppointmentMetrics> {
-    const targetDate = date || new Date().toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-
-    // Get week range
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-
-    const todayAppointments = (await this.getAppointmentsByDate(targetDate)).length;
-    const weeklyAppointments = (await this.getAppointmentsByDateRange(
-      weekStart.toISOString().split('T')[0],
-      weekEnd.toISOString().split('T')[0]
-    )).length;
-
-    // Calculate total possible slots (7 AM to 7 PM = 12 hours = 24 slots)
-    const totalSlots = 24;
-    const availableSlots = totalSlots - todayAppointments;
-
-    // Calculate cancellations
-    const allAppointments = Array.from(this.appointments.values());
-    const cancelledThisWeek = allAppointments.filter(apt =>
-      apt.status === "cancelled" &&
-      apt.date >= weekStart.toISOString().split('T')[0] &&
-      apt.date <= weekEnd.toISOString().split('T')[0]
-    ).length;
-
-    const totalThisWeek = weeklyAppointments + cancelledThisWeek;
-    const cancellationRate = totalThisWeek > 0 ? (cancelledThisWeek / totalThisWeek) * 100 : 0;
-
-    return {
-      todayAppointments,
-      availableSlots,
-      totalSlots,
-      weeklyAppointments,
-      cancellations: cancelledThisWeek,
-      cancellationRate: Number(cancellationRate.toFixed(1)),
-    };
-  }
-
-  // Atomic method to prevent race conditions when booking appointments
   async createAppointmentIfAvailable(insertAppointment: InsertAppointment): Promise<Appointment | null> {
     const slotKey = `${insertAppointment.date}-${insertAppointment.startTime}`;
 
     // Check if slot is being processed (locked)
     if (this.slotLocks.get(slotKey)) {
-      return null; // Another request is already processing this slot
+      return null;
     }
 
     // Lock the slot

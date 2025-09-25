@@ -1,14 +1,12 @@
-import { useState } from "react";
-import { Header } from "@/components/Header";
-import { DashboardStats } from "@/components/DashboardStats";
-import { Calendar } from "@/components/ui/calendar";
-import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { BookingModal } from "@/components/BookingModal";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
+import { Header } from "@/components/Header";
+import { TimeSlotGrid } from "@/components/TimeSlotGrid";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import type { TimeSlot } from "@shared/schema";
-import { formatTime } from "@/lib/dateUtils";
-import { startOfToday, addDays } from "date-fns";
+import { addDays, startOfToday } from "date-fns";
+import { useState } from "react";
 
 export default function AppointmentBooking() {
   const [selectedDate, setSelectedDate] = useState(new Date());
