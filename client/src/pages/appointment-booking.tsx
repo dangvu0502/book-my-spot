@@ -1,23 +1,23 @@
 import { BookingModal } from "@/components/BookingModal";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { Header } from "@/components/Header";
-import { TimeSlotGrid } from "@/components/TimeSlotGrid";
+import { TimeSlot } from "@/components/TimeSlot";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import type { TimeSlot } from "@shared/schema";
+import type { TimeSlot as TimeSlotType } from "@shared/schema";
 import { addDays, startOfToday } from "date-fns";
 import { useState } from "react";
 
 export default function AppointmentBooking() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [month, setMonth] = useState(new Date());
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlotType | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [confirmedAppointment, setConfirmedAppointment] = useState<any>(null);
   const today = startOfToday();
 
-  const handleSlotSelect = (slot: TimeSlot) => {
+  const handleSlotSelect = (slot: TimeSlotType) => {
     if (slot.available) {
       setSelectedSlot(slot);
       setShowBookingModal(true);
@@ -132,7 +132,7 @@ export default function AppointmentBooking() {
           </div>
 
           <div className="flex-1">
-            <TimeSlotGrid
+              <TimeSlot
               selectedDate={selectedDate}
               onSlotSelect={handleSlotSelect}
             />

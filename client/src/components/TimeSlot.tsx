@@ -1,20 +1,20 @@
-import { useState } from "react";
-import { Sun, Moon, X } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "./EmptyState";
 import { useAvailableSlots } from "@/hooks/useAppointments";
-import { formatDate, formatTime, isCurrentTimeSlot, getTimeSlotStatus } from "@/lib/dateUtils";
+import { formatDate, formatTime, getTimeSlotStatus } from "@/lib/dateUtils";
 import type { TimeSlot } from "@shared/schema";
+import { Moon, Sun, X } from "lucide-react";
+import { useState } from "react";
 import { CancelModal } from "./CancelModal";
+import { EmptyState } from "./EmptyState";
 
-interface TimeSlotGridProps {
+interface TimeSlotProps {
   selectedDate: Date;
   onSlotSelect: (slot: TimeSlot) => void;
 }
 
-export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) {
+export function TimeSlot({ selectedDate, onSlotSelect }: TimeSlotProps) {
   const dateString = formatDate(selectedDate);
   const { data, isLoading, error } = useAvailableSlots(dateString);
   const [cancelModalData, setCancelModalData] = useState<{
@@ -81,7 +81,6 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
 
   const renderTimeSlot = (slot: TimeSlot) => {
     const status = getTimeSlotStatus(selectedDate, slot.time, !slot.available, slot.isUserBooking);
-    const isCurrentTime = isCurrentTimeSlot(selectedDate, slot.time);
 
     let buttonClass = "time-slot p-2 rounded-lg text-sm font-medium w-full h-auto";
     let disabled = false;
@@ -101,10 +100,6 @@ export function TimeSlotGrid({ selectedDate, onSlotSelect }: TimeSlotGridProps) 
         buttonClass += " bg-muted/50 border border-muted text-muted-foreground cursor-not-allowed disabled-elegant";
         disabled = true;
         break;
-    }
-
-    if (isCurrentTime) {
-      buttonClass += " ring-2 ring-blue-500 ring-offset-2";
     }
 
     return (
