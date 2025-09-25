@@ -1,14 +1,9 @@
 import { storage } from '../storage';
 import { AppError } from '../middleware/errorHandler';
-import { type InsertAppointment } from '@shared/schema';
+import { type InsertAppointment, type TimeSlot } from '@shared/schema';
+import { TimeSlotManager } from './timeSlots';
 
 export class AppointmentService {
-  private static readonly BUSINESS_HOURS = {
-    start: 7, // 7 AM
-    end: 19,  // 7 PM
-    slotDuration: 30 // 30 minutes
-  };
-
   private static readonly CANCELLATION_BUFFER_MINUTES = 30;
 
   static async createAppointment(appointmentData: InsertAppointment): Promise<any> {
@@ -65,14 +60,45 @@ export class AppointmentService {
   }
 
   static async getAppointmentsByDate(date: string) {
-    return await storage.getAppointmentsByDate(date);
+    const appointments = await storage.getAppointmentsByDate(date);
+    const slots = await this.getAvailableTimeSlots(date, appointments);
+
+    return {
+      appointments,
+      slots,
+      businessHours: TimeSlotManager.getBusinessHours()
+    };
+  }
+
+  static async getAvailableTimeSlots(date: string, appointments?: any[]): Promise<TimeSlot[]> {
+    const allSlots = TimeSlotManager.slots;
+    const bookedAppointments = appointments || await storage.getAppointmentsByDate(date);
+
+    const bookedAppointmentsMap = new Map(
+      bookedAppointments
+        .filter(apt => apt.status === 'active')
+        .map(apt => [apt.startTime, apt])
+    );
+
+    return allSlots.map(time => {
+      const booking = bookedAppointmentsMap.get(time);
+      const slotData: TimeSlot = {
+        time: time,
+        available: !booking,
+        slotId: `${date}-${time}`,
+        bookedBy: booking?.customerName,
+        appointmentId: booking?.id
+      };
+
+      return slotData;
+    });
   }
 
   private static async validateBusinessRules(appointmentData: InsertAppointment): Promise<void> {
     const { date, startTime, timezoneOffset } = appointmentData;
 
-    // Parse hours and minutes for business hours validation
-    const [hours, minutes] = startTime.split(':').map(Number);
+    // Validate time slot against predefined slots
+    TimeSlotManager.validateTimeSlot(startTime);
 
     // Create a date string with the time
     // JavaScript will interpret this as UTC if no timezone is specified
@@ -95,19 +121,6 @@ export class AppointmentService {
     // Check if appointment is in the past (compare UTC times)
     if (appointmentUTC <= nowUTC) {
       throw new AppError('Cannot book appointments in the past', 400);
-    }
-
-
-    // Validate business hours
-    const { start, end } = this.BUSINESS_HOURS;
-
-    if (hours < start || hours >= end || (hours === end - 1 && minutes > 30)) {
-      throw new AppError(`Appointments are only available between ${start}:00 AM and ${end}:00 PM`, 400);
-    }
-
-    // Validate time slot format (must be 30-minute intervals)
-    if (minutes !== 0 && minutes !== 30) {
-      throw new AppError('Appointments must be booked in 30-minute intervals', 400);
     }
   }
 

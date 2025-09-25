@@ -7,12 +7,13 @@ const router = Router();
 
 router.get('/appointments/health', AppointmentController.healthCheck);
 
-// Appointment routes - returns both appointments and available slots
+// Get appointments and available slots for a date
 router.get('/appointments',
   validateQuery(appointmentQuerySchema),
   AppointmentController.getAppointments
 );
 
+// Create a new appointment
 router.post('/appointments',
   validateRequest(insertAppointmentSchema),
   AppointmentController.createAppointment

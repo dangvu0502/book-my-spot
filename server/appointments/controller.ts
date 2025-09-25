@@ -16,12 +16,12 @@ export class AppointmentController {
   static async getAppointments(req: Request, res: Response, next: NextFunction) {
     try {
       const { date } = appointmentQuerySchema.parse(req.query);
-      const appointments = await AppointmentService.getAppointmentsByDate(date);
+      const data = await AppointmentService.getAppointmentsByDate(date);
 
       res.json({
         success: true,
         date,
-        appointments
+        ...data
       });
     } catch (error) {
       next(error);
