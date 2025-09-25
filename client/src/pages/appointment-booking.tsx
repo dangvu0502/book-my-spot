@@ -80,12 +80,12 @@ export default function AppointmentBooking() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const prevWeek = addDays(selectedDate, -7);
+                    const preDay = addDays(selectedDate, -7);
+                    const prevWeek = preDay < today ? today : preDay;
                     setSelectedDate(prevWeek);
                     setMonth(prevWeek);
                   }}
                   className="w-full"
-                  disabled={addDays(selectedDate, -7) < today}
                 >
                   Previous Week
                 </Button>
