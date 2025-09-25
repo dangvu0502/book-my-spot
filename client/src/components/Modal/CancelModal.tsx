@@ -5,31 +5,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCancelAppointment } from "@/hooks/useAppointments";
 import { formatTime } from "@/lib/dateUtils";
+import type { Appointment } from "@shared/schema";
 
 interface CancelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  appointmentId: string;
-  customerName: string;
-  time: string;
-  date: string;
+  appointment: Appointment | null;
 }
 
 export function CancelModal({
   isOpen,
   onClose,
-  appointmentId,
-  customerName,
-  time,
-  date
+  appointment
 }: CancelModalProps) {
   const [reason, setReason] = useState("");
   const cancelAppointment = useCancelAppointment();
 
   const handleCancel = async () => {
+    if (!appointment) return;
+
     try {
       await cancelAppointment.mutateAsync({
-        id: appointmentId,
+        id: appointment.id,
         reason: reason.trim() || undefined,
       });
       setReason("");
@@ -55,22 +52,24 @@ export function CancelModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              <strong>Customer:</strong> {customerName}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <strong>Date:</strong> {new Date(date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <strong>Time:</strong> {formatTime(time)}
-            </p>
-          </div>
+          {appointment && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                <strong>Customer:</strong> {appointment.customerName}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Date:</strong> {new Date(appointment.date).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Time:</strong> {formatTime(appointment.startTime)} - {formatTime(appointment.endTime)}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="cancel-reason">

@@ -1,12 +1,10 @@
 import { Header } from "@/components/Header";
 import { ModalProvider } from "@/components/Modal";
-import { TimeSlot } from "@/components/TimeSlot";
+import { TimeSelector } from "@/components/TimeSelector";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { useModalStore } from "@/stores/modalStore";
 import { addDays, startOfToday } from "date-fns";
 import { useState } from "react";
-import type { Appointment } from "@shared/schema";
 
 export default function AppointmentBooking() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -106,7 +104,7 @@ export default function AppointmentBooking() {
           </div>
 
           <div className="flex-1">
-            <TimeSlot
+            <TimeSelector
               selectedDate={selectedDate}
             />
           </div>

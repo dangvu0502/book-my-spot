@@ -12,10 +12,7 @@ export interface ConfirmationModalData {
 }
 
 export interface CancelModalData {
-  appointmentId: string;
-  customerName: string;
-  time: string;
-  date: string;
+  appointment: Appointment;
 }
 
 export interface BookingDetailsModalData {
@@ -38,7 +35,7 @@ interface ModalStore {
   // Actions
   openBookingModal: (slot: TimeSlot, date: Date) => void;
   openConfirmationModal: (appointment: Appointment) => void;
-  openCancelModal: (appointmentId: string, customerName: string, time: string, date: string) => void;
+  openCancelModal: (appointment: Appointment) => void;
   openBookingDetailsModal: (appointment: Appointment) => void;
 
   closeBookingModal: () => void;
@@ -71,9 +68,9 @@ export const useModalStore = create<ModalStore>((set) => ({
     confirmationData: { appointment }
   }),
 
-  openCancelModal: (appointmentId, customerName, time, date) => set({
+  openCancelModal: (appointment) => set({
     isCancelOpen: true,
-    cancelData: { appointmentId, customerName, time, date }
+    cancelData: { appointment }
   }),
 
   openBookingDetailsModal: (appointment) => set({

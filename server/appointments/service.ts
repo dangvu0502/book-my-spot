@@ -61,67 +61,57 @@ export class AppointmentService {
 
   static async getAppointmentsByDate(date: string) {
     const appointments = await storage.getAppointmentsByDate(date);
-    const slots = await this.getAvailableTimeSlots(date, appointments);
 
     return {
       appointments,
-      slots,
       businessHours: TimeSlotManager.getBusinessHours()
     };
   }
 
-  static async getAvailableTimeSlots(date: string, appointments?: any[]): Promise<TimeSlot[]> {
-    const allSlots = TimeSlotManager.slots;
-    const bookedAppointments = appointments || await storage.getAppointmentsByDate(date);
 
-    const bookedAppointmentsMap = new Map(
-      bookedAppointments
-        .filter(apt => apt.status === 'active')
-        .map(apt => [apt.startTime, apt])
-    );
-
-    return allSlots.map(time => {
-      const booking = bookedAppointmentsMap.get(time);
-      const slotData: TimeSlot = {
-        time: time,
-        available: !booking,
-        slotId: `${date}-${time}`,
-        bookedBy: booking?.customerName,
-        appointmentId: booking?.id
-      };
-
-      return slotData;
-    });
-  }
 
   private static async validateBusinessRules(appointmentData: InsertAppointment): Promise<void> {
     const { date, startTime, timezoneOffset } = appointmentData;
 
-    // Validate time slot against predefined slots
+    // Validate basic time format and business hours
     TimeSlotManager.validateTimeSlot(startTime);
 
     // Create a date string with the time
-    // JavaScript will interpret this as UTC if no timezone is specified
     const appointmentDateTimeString = `${date}T${startTime}:00`;
-
-    // Parse this as a UTC date/time (JS default behavior)
     const appointmentDateTime = new Date(appointmentDateTimeString);
 
-    // The user selected this time in their local timezone, but JS parsed it as UTC
-    // We need to convert from the user's local time to UTC
-    // timezoneOffset is the number of minutes to subtract from local time to get UTC
-    // For GMT+7: offset is -420 (negative because it's ahead of UTC)
-    // User's 7:00 AM in GMT+7 = UTC 00:00 (subtract 7 hours)
-    // So we subtract the offset: time - (-420) = time + 420
+    // Convert to UTC
     const appointmentUTC = appointmentDateTime.getTime() - (timezoneOffset * 60 * 1000);
-
-    // Get current time in UTC
     const nowUTC = Date.now();
 
-    // Check if appointment is in the past (compare UTC times)
+    // Check if appointment is in the past
     if (appointmentUTC <= nowUTC) {
       throw new AppError('Cannot book appointments in the past', 400);
     }
+
+    // Check for overlapping appointments
+    const existingAppointments = await storage.getAppointmentsByDate(date);
+    const newStartMinutes = this.timeToMinutes(startTime);
+    const newEndMinutes = newStartMinutes + 30; // Fixed 30-minute duration
+
+    const hasOverlap = existingAppointments.some((apt: any) => {
+      if (apt.status !== 'active') return false;
+
+      const existingStartMinutes = this.timeToMinutes(apt.startTime);
+      const existingEndMinutes = this.timeToMinutes(apt.endTime);
+
+      // Check if new appointment overlaps with existing one
+      return (newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes);
+    });
+
+    if (hasOverlap) {
+      throw new AppError('This time slot overlaps with an existing appointment', 409);
+    }
+  }
+
+  private static timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 
   private static generateConfirmationCode(appointment: any): string {

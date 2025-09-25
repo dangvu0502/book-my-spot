@@ -46,10 +46,7 @@ export function ModalProvider() {
         <CancelModal
           isOpen={isCancelOpen}
           onClose={closeCancelModal}
-          appointmentId={cancelData.appointmentId}
-          customerName={cancelData.customerName}
-          time={cancelData.time}
-          date={cancelData.date}
+          appointment={cancelData.appointment}
         />
       )}
 
