@@ -42,7 +42,18 @@ export const insertAppointmentSchema = appointmentSchema.pick({
     .max(500, "Notes must be under 500 characters")
     .transform(sanitizeString)
     .optional(),
-  timezoneOffset: z.number(), // Client's timezone offset in minutes (required for creation)
+  timezone: z.string().refine(
+    (tz) => {
+      try {
+        // Test if it's a valid IANA timezone by creating a date
+        Intl.DateTimeFormat('en', { timeZone: tz });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "Invalid timezone. Must be a valid IANA timezone identifier (e.g. 'America/New_York')" }
+  ),
 });
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
@@ -61,9 +72,7 @@ export type TimeSlot = {
 // API Response schemas
 export const createAppointmentResponseSchema = z.object({
   success: z.literal(true),
-  appointment: appointmentSchema.extend({
-    confirmationCode: z.string(),
-  }),
+  appointment: appointmentSchema,
 });
 
 export const cancelAppointmentResponseSchema = z.object({

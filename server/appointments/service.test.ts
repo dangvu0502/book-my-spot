@@ -31,7 +31,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25', // Sept 25 in local time
         startTime: '07:00',
-        timezoneOffset: -420, // GMT+7 (420 minutes ahead of UTC)
+        timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
       };
 
@@ -52,7 +52,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25',
         startTime: '07:00', // 7 AM has already passed (it's 3 PM now)
-        timezoneOffset: -420, // GMT+7
+        timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
       };
 
@@ -74,7 +74,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25',
         startTime: '07:00',
-        timezoneOffset: -420, // GMT+7
+        timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
       };
 
@@ -93,7 +93,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25',
         startTime: '20:00', // 8 PM - outside business hours
-        timezoneOffset: -420,
+        timezone: 'Asia/Bangkok',
         notes: undefined
       };
 
@@ -114,7 +114,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25',
         startTime: '14:00', // 2 PM in GMT+3
-        timezoneOffset: -180, // GMT+3 (180 minutes ahead of UTC)
+        timezone: 'Europe/Moscow', // GMT+3
         notes: undefined
       };
 
@@ -133,7 +133,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25',
         startTime: '07:15',
-        timezoneOffset: -420,
+        timezone: 'Asia/Bangkok',
         notes: undefined
       };
 
@@ -153,7 +153,7 @@ describe('AppointmentService', () => {
         customerEmail: 'test@example.com',
         date: '2025-09-25',
         startTime: '08:00',
-        timezoneOffset: -420, // GMT+7
+        timezone: 'Asia/Bangkok', // GMT+7
         notes: undefined
       };
 
@@ -175,7 +175,7 @@ describe('AppointmentService', () => {
         customerEmail: 'midnight@example.com',
         date: '2025-09-25',
         startTime: '07:00',
-        timezoneOffset: -420, // GMT+7
+        timezone: 'Asia/Bangkok', // GMT+7
         notes: 'Critical test - user reported bug'
       };
 

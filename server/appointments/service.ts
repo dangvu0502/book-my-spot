@@ -27,15 +27,9 @@ export class AppointmentService {
       throw new AppError('This time slot is already booked', 409);
     }
 
-    // Generate confirmation code
-    const confirmationCode = this.generateConfirmationCode(appointment);
-
     return {
       success: true,
-      appointment: {
-        ...appointment,
-        confirmationCode
-      }
+      appointment
     };
   }
 
@@ -82,7 +76,7 @@ export class AppointmentService {
 
 
   private static async validateBusinessRules(appointmentData: InsertAppointment): Promise<void> {
-    const { date, startTime, timezoneOffset } = appointmentData;
+    const { date, startTime, timezone } = appointmentData;
 
     // Validate basic time format and business hours
     if (!isValidTimeFormat(startTime) || !isWithinBusinessHours(startTime)) {
@@ -97,7 +91,7 @@ export class AppointmentService {
     }
 
     // Check if appointment is in the past
-    if (isAppointmentInPast(date, startTime, timezoneOffset)) {
+    if (isAppointmentInPast(date, startTime, timezone)) {
       throw new AppError('Cannot book appointments in the past', 400);
     }
 
@@ -108,11 +102,5 @@ export class AppointmentService {
     if (hasOverlap) {
       throw new AppError('This time slot overlaps with an existing appointment', 409);
     }
-  }
-
-  private static generateConfirmationCode(appointment: any): string {
-    const dateStr = appointment.date.replace(/-/g, '');
-    const timeStr = appointment.startTime.replace(':', '');
-    return `APT-${dateStr}-${timeStr}`;
   }
 }

@@ -107,7 +107,7 @@ export function BookingModal({
         date: localDateString,
         startTime: selectedSlot.time,
         notes: notes.trim() || undefined,
-        timezoneOffset: new Date().getTimezoneOffset(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
 
       const result = await createAppointment.mutateAsync(appointmentData);

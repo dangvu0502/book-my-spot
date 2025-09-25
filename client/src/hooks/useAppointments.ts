@@ -27,7 +27,7 @@ export const useCreateAppointment = () => {
       queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });
       toast({
         title: "Success!",
-        description: `Appointment booked successfully! Confirmation: ${data.appointment.confirmationCode}`,
+        description: `Appointment booked successfully for ${data.appointment.date} at ${data.appointment.startTime}`,
       });
     },
     onError: (error: any) => {

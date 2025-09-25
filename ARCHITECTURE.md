@@ -1,143 +1,122 @@
-# Book My Spot - Architecture Document
+# Book My Spot - Architecture
 
-## 1. API Endpoints
+## Project Structure
 
-### GET /api/appointments?date=YYYY-MM-DD
-**Purpose**: Retrieve all appointments for a specific date
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "string",
-      "customerName": "string",
-      "customerEmail": "string",
-      "date": "YYYY-MM-DD",
-      "startTime": "HH:mm",
-      "endTime": "HH:mm",
-      "status": "active | cancelled",
-      "notes": "string",
-      "createdAt": "ISO 8601 timestamp"
-    }
-  ]
-}
+```
+book-my-spot/
+├── client/src/             # React frontend
+├── server/                 # Express.js backend
+├── shared/                 # Shared validation & types
 ```
 
-### POST /api/appointments
-**Purpose**: Create a new appointment
+## Data Models
 
-**Request**:
-```json
-{
-  "customerName": "string (required)",
-  "customerEmail": "string (required, email format)",
-  "date": "YYYY-MM-DD (required)",
-  "startTime": "HH:mm (required)",
-  "timezoneOffset": "number (required, minutes offset from UTC)",
-  "notes": "string (optional, max 500 chars)"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "string",
-    "customerName": "string",
-    "customerEmail": "string",
-    "date": "YYYY-MM-DD",
-    "startTime": "HH:mm",
-    "endTime": "HH:mm",
-    "status": "active",
-    "createdAt": "ISO 8601 timestamp"
-  }
-}
-```
-
-### DELETE /api/appointments/:id
-**Purpose**: Cancel an existing appointment
-
-**Request Body**:
-```json
-{
-  "reason": "string (optional)"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "id": "string",
-    "status": "cancelled",
-    "cancelledAt": "ISO 8601 timestamp"
-  }
-}
-```
-
-## 2. Data Structure
-
-### Appointment Model
 ```typescript
 interface Appointment {
   id: string;
   customerName: string;
   customerEmail: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  date: string;           // YYYY-MM-DD
+  startTime: string;      // HH:mm
+  endTime: string;        // HH:mm (calculated)
   status: 'active' | 'cancelled';
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  cancelledAt?: string;
-  cancellationReason?: string;
+  notes: string | null;
+  createdAt: string;      // ISO timestamp
+  updatedAt: string;      // ISO timestamp
+  cancelledAt: string | null;
+  cancellationReason: string | null;
 }
 ```
 
-### Storage Interface
-```typescript
-interface IStorage {
-  getAppointmentsByDate(date: string): Promise<Appointment[]>;
-  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
-  cancelAppointment(id: string, reason?: string): Promise<boolean>;
-  isSlotAvailable(date: string, startTime: string): Promise<boolean>;
-  createAppointmentIfAvailable(appointment: InsertAppointment): Promise<Appointment | null>;
+## API Endpoints
+
+### GET /api/appointments?date=YYYY-MM-DD
+**Response:**
+```json
+{
+  "appointments": [Appointment],
+  "businessHours": {
+    "start": 7,
+    "end": 19,
+    "defaultDuration": 30
+  }
 }
 ```
 
-## 3. System Architecture
+### POST /api/appointments
+**Request:**
+```json
+{
+  "customerName": "string",
+  "customerEmail": "string",
+  "date": "YYYY-MM-DD",
+  "startTime": "HH:mm",
+  "timezone": "Asia/Bangkok",
+  "notes": "string (optional)"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "appointment": Appointment
+}
+```
 
-### Storage Implementation
-- **Data Structure**: `Map<string, Appointment>` for O(1) lookups
-- **Concurrency Control**: Slot locking mechanism prevents double-booking
-- **Business Hours**: 07:00-19:00 with 30-minute slots
-- **No Persistence**: Data resets on server restart
+### DELETE /api/appointments/:id
+**Request:**
+```json
+{
+  "reason": "string (optional)"
+}
+```
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Appointment cancelled successfully"
+}
+```
 
-### Architecture Flow
+## Booking Flow
 
 ```
-┌─────────────────┐    HTTP/REST    ┌─────────────────┐
-│   Client Layer  │ ──────────────► │   API Gateway   │
-│  (React SPA)    │                 │  (Express.js)   │
-└─────────────────┘                 └─────────────────┘
-                                             │
-                                             ▼
-                                    ┌─────────────────┐
-                                    │ Service Layer   │
-                                    │ - Validation    │
-                                    │ - Business Logic│
-                                    │ - Slot Locking  │
-                                    └─────────────────┘
-                                             │
-                                             ▼
-                                    ┌─────────────────┐
-                                    │ Storage Layer   │
-                                    │ Map<string,     │
-                                    │ Appointment>    │
-                                    └─────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                           👤 User Journey                           │
+└─────────────────────────────────────────────────────────────────────┘
+
+                     📅 User selects date & time
+                               │
+                               ▼
+            ┌─────────────────────────────────┐
+            │        🕐 TimeSelector          │ ← Real-time availability check
+            │                                 │
+            └─────────────────────────────────┘
+                               │
+                               ▼
+            ┌─────────────────────────────────┐
+            │       📝 BookingModal           │ ← Enter name, email, notes
+            │                                 │
+            └─────────────────────────────────┘
+                               │
+                               ▼
+            ┌─────────────────────────────────┐
+            │       🚀 Submit Request         │ ← POST /api/appointments
+            │                                 │
+            └─────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        🛡️ Server Processing                         │
+├─────────────────────────────────────────────────────────────────────┤
+│     ✓ Format validation        ✓ Past time check (timezone-aware)   │
+│     ✓ Business hours check     ✓ Overlap detection                  │
+│     ✓ Atomic slot booking                                           │
+└─────────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+            ┌─────────────────────────────────┐
+            │         ✅ Success!             │ ← Date & time confirmation
+            │                                 │
+            └─────────────────────────────────┘
 ```

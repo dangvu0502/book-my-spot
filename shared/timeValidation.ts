@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon';
+
 export const BUSINESS_HOURS = {
   start: 7,
   end: 19,
@@ -85,20 +87,17 @@ export function hasTimeOverlap(
   return start1 < end2 && end1 > start2;
 }
 
-export function createUTCDateTime(date: string, time: string, timezoneOffset: number): number {
-  const appointmentDateTimeString = `${date}T${time}:00`;
+export function createUTCDateTime(date: string, time: string, timezone: string): number {
+  // Create DateTime in user's timezone
+  const localDateTime = DateTime.fromISO(`${date}T${time}:00`, { zone: timezone });
 
-  // Create date object treating the input as UTC to avoid local timezone issues
-  const appointmentDateTime = new Date(appointmentDateTimeString + 'Z');
-
-  // Convert from the user's timezone to UTC by adding the timezone offset
-  // (offset is negative for timezones ahead of UTC, so adding it subtracts the hours)
-  return appointmentDateTime.getTime() + (timezoneOffset * 60 * 1000);
+  // Convert to UTC timestamp
+  return localDateTime.toUTC().toMillis();
 }
 
-export function isAppointmentInPast(date: string, time: string, timezoneOffset: number): boolean {
-  const appointmentUTC = createUTCDateTime(date, time, timezoneOffset);
-  const nowUTC = Date.now();
+export function isAppointmentInPast(date: string, time: string, timezone: string): boolean {
+  const appointmentUTC = createUTCDateTime(date, time, timezone);
+  const nowUTC = DateTime.now().toUTC().toMillis();
 
   return appointmentUTC <= nowUTC;
 }

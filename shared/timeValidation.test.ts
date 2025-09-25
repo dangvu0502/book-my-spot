@@ -227,9 +227,9 @@ describe('timeValidation', () => {
   });
 
   describe('createUTCDateTime', () => {
-    it('should create UTC timestamp from date, time, and timezone offset', () => {
-      // Test with GMT+7 timezone (offset -420 minutes)
-      const utc = createUTCDateTime('2025-09-25', '14:30', -420);
+    it('should create UTC timestamp from date, time, and timezone', () => {
+      // Test with GMT+7 timezone (Asia/Bangkok)
+      const utc = createUTCDateTime('2025-09-25', '14:30', 'Asia/Bangkok');
 
       // 2025-09-25T14:30:00 in GMT+7 should be 2025-09-25T07:30:00 UTC
       const expected = new Date('2025-09-25T07:30:00Z').getTime();
@@ -237,13 +237,13 @@ describe('timeValidation', () => {
     });
 
     it('should handle different timezones', () => {
-      // GMT-5 (EST)
-      const utcEst = createUTCDateTime('2025-09-25', '09:00', 300);
-      const expectedEst = new Date('2025-09-25T14:00:00Z').getTime();
+      // EST (GMT-5)
+      const utcEst = createUTCDateTime('2025-09-25', '09:00', 'America/New_York');
+      const expectedEst = new Date('2025-09-25T13:00:00Z').getTime(); // EST is UTC-5 in winter
       expect(utcEst).toBe(expectedEst);
 
-      // GMT+0 (UTC)
-      const utcUTC = createUTCDateTime('2025-09-25', '12:00', 0);
+      // UTC
+      const utcUTC = createUTCDateTime('2025-09-25', '12:00', 'UTC');
       const expectedUTC = new Date('2025-09-25T12:00:00Z').getTime();
       expect(utcUTC).toBe(expectedUTC);
     });
@@ -256,10 +256,10 @@ describe('timeValidation', () => {
       vi.setSystemTime(now);
 
       // Appointment 1 hour ago in GMT+7
-      expect(isAppointmentInPast('2025-09-25', '16:00', -420)).toBe(true);
+      expect(isAppointmentInPast('2025-09-25', '16:00', 'Asia/Bangkok')).toBe(true);
 
       // Appointment 1 hour in future in GMT+7
-      expect(isAppointmentInPast('2025-09-25', '18:00', -420)).toBe(false);
+      expect(isAppointmentInPast('2025-09-25', '18:00', 'Asia/Bangkok')).toBe(false);
     });
 
     it('should handle timezone boundaries', () => {
@@ -268,10 +268,10 @@ describe('timeValidation', () => {
       vi.setSystemTime(now);
 
       // Tomorrow 07:00 in GMT+7 should be today 00:00 UTC (30 minutes future)
-      expect(isAppointmentInPast('2025-09-26', '07:00', -420)).toBe(false);
+      expect(isAppointmentInPast('2025-09-26', '07:00', 'Asia/Bangkok')).toBe(false);
 
       // Tomorrow 08:00 in GMT+7 should be today 01:00 UTC (1.5 hours future)
-      expect(isAppointmentInPast('2025-09-26', '08:00', -420)).toBe(false);
+      expect(isAppointmentInPast('2025-09-26', '08:00', 'Asia/Bangkok')).toBe(false);
     });
   });
 
@@ -370,7 +370,7 @@ describe('timeValidation', () => {
       const appointmentData = {
         date: '2025-09-25',
         startTime: '14:00', // 2 PM local time
-        timezoneOffset: -420 // GMT+7
+        timezone: 'Asia/Bangkok' // GMT+7
       };
 
       const existingAppointments = [
@@ -381,7 +381,7 @@ describe('timeValidation', () => {
       // Full validation flow
       expect(isValidTimeFormat(appointmentData.startTime)).toBe(true);
       expect(isWithinBusinessHours(appointmentData.startTime)).toBe(true);
-      expect(isAppointmentInPast(appointmentData.date, appointmentData.startTime, appointmentData.timezoneOffset)).toBe(false);
+      expect(isAppointmentInPast(appointmentData.date, appointmentData.startTime, appointmentData.timezone)).toBe(false);
       expect(checkAppointmentOverlap(appointmentData.startTime, 30, existingAppointments)).toBe(false);
     });
   });
