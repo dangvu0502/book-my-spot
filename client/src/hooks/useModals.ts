@@ -29,7 +29,6 @@ export interface BookingDetailsModalData {
     date: string;
     time: string;
     notes?: string;
-    confirmationCode?: string;
     status: string;
   };
 }

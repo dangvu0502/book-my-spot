@@ -2,21 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTimeSlot } from "@/hooks/useTimeSlot";
 import { useModalStore } from "@/stores/modalStore";
+import { BUSINESS_HOURS } from "@shared/timeValidation";
 import { ExistingBookings } from "./ExistingBookings";
 import { TimeInput } from "./TimeInput";
 import { AvailabilityStatus } from "./AvailabilityStatus";
 import { QuickActions } from "./QuickActions";
+
 interface TimeSelectorProps {
   selectedDate: Date;
 }
 
 export function TimeSelector({ selectedDate }: TimeSelectorProps) {
   const { openBookingModal, openBookingDetailsModal, openCancelModal } = useModalStore();
-
-  const businessHours = {
-    start: 7,
-    end: 19,
-  };
 
   const {
     timeValue,
@@ -27,9 +24,7 @@ export function TimeSelector({ selectedDate }: TimeSelectorProps) {
     findNextAvailable,
     createBookingData,
   } = useTimeSlot({
-    selectedDate,
-    duration: 30,
-    businessHours
+    selectedDate
   });
 
   const handleBookAppointment = () => {
@@ -61,7 +56,7 @@ export function TimeSelector({ selectedDate }: TimeSelectorProps) {
         <TimeInput
           value={timeValue}
           onChange={setTimeValue}
-          businessHours={businessHours}
+          businessHours={BUSINESS_HOURS}
         />
 
         <AvailabilityStatus isAvailable={isAvailable} />

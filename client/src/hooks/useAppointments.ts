@@ -1,11 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { appointmentApi } from '@/lib/api';
 import { useToast } from '@/hooks';
-import { calculateAvailableSlots } from '@/lib/slotUtils';
-import type { InsertAppointment } from '@shared/schema';
+import { appointmentApi } from '@/lib/api';
+import type {
+  CancelAppointmentResponse,
+  CreateAppointmentResponse,
+  GetAppointmentsByDateResponse,
+  InsertAppointment
+} from '@shared/schema';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useAppointments = (date: string) => {
-  return useQuery({
+  return useQuery<GetAppointmentsByDateResponse>({
     queryKey: [appointmentApi.baseUrl, date],
     queryFn: () => appointmentApi.getAppointments(date),
     enabled: !!date,
@@ -17,7 +21,7 @@ export const useCreateAppointment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useMutation({
+  return useMutation<CreateAppointmentResponse, Error, InsertAppointment>({
     mutationFn: (data: InsertAppointment) => appointmentApi.createAppointment(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });
@@ -41,14 +45,14 @@ export const useCancelAppointment = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  return useMutation({
+  return useMutation<CancelAppointmentResponse, Error, { id: string; reason?: string }>({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       appointmentApi.cancelAppointment(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });  
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [appointmentApi.baseUrl] });
       toast({
         title: "Cancelled",
-        description: "Appointment cancelled successfully",
+        description: data.message,
       });
     },
     onError: (error: any) => {

@@ -1,12 +1,23 @@
-import { storage } from '../storage';
+import {
+  type InsertAppointment,
+  type CreateAppointmentResponse,
+  type CancelAppointmentResponse,
+  type GetAppointmentsByDateResponse
+} from '@shared/schema';
+import {
+  BUSINESS_HOURS,
+  checkAppointmentOverlap,
+  isAppointmentInPast,
+  isValidTimeFormat,
+  isWithinBusinessHours
+} from '@shared/timeValidation';
 import { AppError } from '../middleware/errorHandler';
-import { type InsertAppointment, type TimeSlot } from '@shared/schema';
-import { TimeSlotManager } from './timeSlots';
+import { storage } from '../storage';
 
 export class AppointmentService {
   private static readonly CANCELLATION_BUFFER_MINUTES = 30;
 
-  static async createAppointment(appointmentData: InsertAppointment): Promise<any> {
+  static async createAppointment(appointmentData: InsertAppointment): Promise<CreateAppointmentResponse> {
     // Validate business rules
     await this.validateBusinessRules(appointmentData);
 
@@ -28,7 +39,7 @@ export class AppointmentService {
     };
   }
 
-  static async cancelAppointment(id: string, reason?: string): Promise<any> {
+  static async cancelAppointment(id: string, reason?: string): Promise<CancelAppointmentResponse> {
     const appointment = await storage.getAppointment(id);
     if (!appointment) {
       throw new AppError('Appointment not found', 404);
@@ -59,12 +70,12 @@ export class AppointmentService {
     };
   }
 
-  static async getAppointmentsByDate(date: string) {
+  static async getAppointmentsByDate(date: string): Promise<GetAppointmentsByDateResponse> {
     const appointments = await storage.getAppointmentsByDate(date);
 
     return {
       appointments,
-      businessHours: TimeSlotManager.getBusinessHours()
+      businessHours: BUSINESS_HOURS
     };
   }
 
@@ -74,44 +85,29 @@ export class AppointmentService {
     const { date, startTime, timezoneOffset } = appointmentData;
 
     // Validate basic time format and business hours
-    TimeSlotManager.validateTimeSlot(startTime);
+    if (!isValidTimeFormat(startTime) || !isWithinBusinessHours(startTime)) {
+      const maxStartHour = BUSINESS_HOURS.end - 1;
+      const maxStartMinute = 60 - BUSINESS_HOURS.defaultDuration;
+      const maxStartTime = `${maxStartHour}:${maxStartMinute.toString().padStart(2, '0')}`;
 
-    // Create a date string with the time
-    const appointmentDateTimeString = `${date}T${startTime}:00`;
-    const appointmentDateTime = new Date(appointmentDateTimeString);
-
-    // Convert to UTC
-    const appointmentUTC = appointmentDateTime.getTime() - (timezoneOffset * 60 * 1000);
-    const nowUTC = Date.now();
+      throw new AppError(
+        `Invalid time. Appointments must start between ${BUSINESS_HOURS.start}:00 and ${maxStartTime} (last appointment ends at ${BUSINESS_HOURS.end}:00)`,
+        400
+      );
+    }
 
     // Check if appointment is in the past
-    if (appointmentUTC <= nowUTC) {
+    if (isAppointmentInPast(date, startTime, timezoneOffset)) {
       throw new AppError('Cannot book appointments in the past', 400);
     }
 
     // Check for overlapping appointments
     const existingAppointments = await storage.getAppointmentsByDate(date);
-    const newStartMinutes = this.timeToMinutes(startTime);
-    const newEndMinutes = newStartMinutes + 30; // Fixed 30-minute duration
-
-    const hasOverlap = existingAppointments.some((apt: any) => {
-      if (apt.status !== 'active') return false;
-
-      const existingStartMinutes = this.timeToMinutes(apt.startTime);
-      const existingEndMinutes = this.timeToMinutes(apt.endTime);
-
-      // Check if new appointment overlaps with existing one
-      return (newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes);
-    });
+    const hasOverlap = checkAppointmentOverlap(startTime, BUSINESS_HOURS.defaultDuration, existingAppointments || []);
 
     if (hasOverlap) {
       throw new AppError('This time slot overlaps with an existing appointment', 409);
     }
-  }
-
-  private static timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
   }
 
   private static generateConfirmationCode(appointment: any): string {
@@ -119,5 +115,4 @@ export class AppointmentService {
     const timeStr = appointment.startTime.replace(':', '');
     return `APT-${dateStr}-${timeStr}`;
   }
-
 }

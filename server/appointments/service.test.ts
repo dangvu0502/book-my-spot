@@ -100,7 +100,7 @@ describe('AppointmentService', () => {
       const validateMethod = AppointmentService['validateBusinessRules'];
       await expect(validateMethod.call(AppointmentService, appointmentData))
         .rejects
-        .toThrow('Appointments are only available between 7:00 AM and 19:00 PM');
+        .toThrow('Invalid time. Appointments must start between 7:00 and 18:30');
     });
 
     it('should handle different timezones correctly', async () => {
@@ -123,7 +123,7 @@ describe('AppointmentService', () => {
       await expect(validateMethod.call(AppointmentService, appointmentData)).resolves.not.toThrow();
     });
 
-    it('should validate 30-minute intervals', async () => {
+    it('should allow appointments at any minute (dynamic time selection)', async () => {
       const mockDate = new Date('2025-09-25T06:00:00+07:00');
       vi.useFakeTimers();
       vi.setSystemTime(mockDate);
@@ -132,15 +132,13 @@ describe('AppointmentService', () => {
         customerName: 'Test User',
         customerEmail: 'test@example.com',
         date: '2025-09-25',
-        startTime: '07:15', // Invalid - not on 30-minute interval
+        startTime: '07:15',
         timezoneOffset: -420,
         notes: undefined
       };
 
       const validateMethod = AppointmentService['validateBusinessRules'];
-      await expect(validateMethod.call(AppointmentService, appointmentData))
-        .rejects
-        .toThrow('Appointments must be booked in 30-minute intervals');
+      await expect(validateMethod.call(AppointmentService, appointmentData)).resolves.not.toThrow();
     });
 
     it('should correctly calculate UTC time from local time and offset', async () => {
@@ -187,17 +185,4 @@ describe('AppointmentService', () => {
     });
   });
 
-  describe('generateConfirmationCode', () => {
-    it('should generate correct confirmation code format', () => {
-      const appointment = {
-        date: '2025-09-25',
-        startTime: '07:30'
-      };
-
-      const generateMethod = AppointmentService['generateConfirmationCode'];
-      const code = generateMethod.call(AppointmentService, appointment);
-
-      expect(code).toBe('APT-20250925-0730');
-    });
-  });
 });

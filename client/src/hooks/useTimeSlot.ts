@@ -1,101 +1,73 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { formatDate } from "@/lib/dateUtils";
 import { useAppointments } from "@/hooks/useAppointments";
-import type { Appointment } from "@shared/schema";
+import {
+  isValidTimeFormat,
+  isWithinBusinessHours,
+  isPastTime,
+  timeToMinutes,
+  hasTimeOverlap,
+  minutesToTime,
+  BUSINESS_HOURS
+} from "@shared/timeValidation";
+import type { Appointment, GetAppointmentsByDateResponse } from "@shared/schema";
 
 interface UseTimeSlotLogicProps {
   selectedDate: Date;
+  duration?: number;
+}
+
+function calculateAvailability(params: {
+  timeValue: string;
+  data: GetAppointmentsByDateResponse | undefined;
+  selectedDate: Date;
   duration: number;
-  businessHours: {
-    start: number;
-    end: number;
-  };
+}): boolean | null {
+  const { timeValue, data, selectedDate, duration } = params;
+
+  if (!data || !timeValue) return null;
+
+  // Use shared validation functions
+  if (!isValidTimeFormat(timeValue)) return false;
+  if (!isWithinBusinessHours(timeValue, duration)) return false;
+  if (isPastTime(timeValue, selectedDate)) return false;
+
+  // Check against existing appointments
+  const selectedStartMinutes = timeToMinutes(timeValue);
+  const selectedEndMinutes = selectedStartMinutes + duration;
+
+  const hasConflict = data.appointments?.some((apt: Appointment) => {
+    if (apt.status !== 'active') return false;
+
+    const aptStartMinutes = timeToMinutes(apt.startTime);
+    const aptEndMinutes = timeToMinutes(apt.endTime);
+
+    return hasTimeOverlap(selectedStartMinutes, selectedEndMinutes, aptStartMinutes, aptEndMinutes);
+  });
+
+  return !hasConflict;
 }
 
 export function useTimeSlot({
   selectedDate,
-  duration,
-  businessHours
+  duration = BUSINESS_HOURS.defaultDuration
 }: UseTimeSlotLogicProps) {
   const dateString = formatDate(selectedDate);
   const { data, isLoading } = useAppointments(dateString);
 
   const [timeValue, setTimeValue] = useState<string>("09:00");
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
 
   const existingBookings = data?.appointments?.filter(
     (apt: Appointment) => apt.status === 'active'
   ) || [];
 
-  // Check if selected time is available
-  useEffect(() => {
-    if (!data || !timeValue) {
-      setIsAvailable(null);
-      return;
-    }
-
-    // Validate time format
-    const timeMatch = timeValue.match(/^(\d{1,2}):(\d{2})$/);
-    if (!timeMatch) {
-      setIsAvailable(false);
-      return;
-    }
-
-    const [_, hourStr, minuteStr] = timeMatch;
-    const hour = parseInt(hourStr);
-    const minute = parseInt(minuteStr);
-
-    // Check basic time validity
-    if (hour < businessHours.start || hour >= businessHours.end || minute < 0 || minute > 59) {
-      setIsAvailable(false);
-      return;
-    }
-
-    // Check if time is in the past
-    const now = new Date();
-    const isToday = selectedDate.toDateString() === now.toDateString();
-    if (isToday) {
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const selectedTimeMinutes = hour * 60 + minute;
-      if (selectedTimeMinutes <= currentMinutes) {
-        setIsAvailable(false);
-        return;
-      }
-    }
-
-    const selectedTimeMinutes = hour * 60 + minute;
-    const endTimeMinutes = selectedTimeMinutes + duration;
-
-    // Check if within business hours
-    if (endTimeMinutes > businessHours.end * 60) {
-      setIsAvailable(false);
-      return;
-    }
-
-    // Check against existing appointments
-    const hasConflict = data.appointments?.some((apt: Appointment) => {
-      if (apt.status !== 'active') return false;
-
-      const aptStartMinutes = timeToMinutes(apt.startTime);
-      const aptEndMinutes = timeToMinutes(apt.endTime);
-
-      // Check for overlap
-      return (selectedTimeMinutes < aptEndMinutes && endTimeMinutes > aptStartMinutes);
-    });
-
-    setIsAvailable(!hasConflict);
-  }, [timeValue, duration, data, selectedDate, businessHours]);
-
-  const timeToMinutes = (time: string): number => {
-    const [h, m] = time.split(":").map(Number);
-    return h * 60 + m;
-  };
-
-  const minutesToTime = (minutes: number): string => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
-  };
+  // Calculate availability
+  const isAvailable = calculateAvailability({
+    timeValue,
+    data,
+    selectedDate,
+    duration
+  });
 
   const findNextAvailable = () => {
     if (!data) return;
@@ -104,13 +76,12 @@ export function useTimeSlot({
     const isToday = selectedDate.toDateString() === now.toDateString();
 
     // Start from current time if today, otherwise from business start
-    let searchStart = businessHours.start * 60;
+    let searchStart = BUSINESS_HOURS.start * 60;
     if (isToday) {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       searchStart = Math.max(currentMinutes + 15, searchStart); // At least 15 mins from now
     }
 
-    const durationMinutes = duration;
     const appointments = data.appointments?.filter((apt: Appointment) => apt.status === 'active') || [];
 
     // Sort appointments by start time
@@ -125,7 +96,7 @@ export function useTimeSlot({
       foundTime = searchStart;
     } else {
       // Check before first appointment
-      if (searchStart + durationMinutes <= timeToMinutes(appointments[0].startTime)) {
+      if (searchStart + duration <= timeToMinutes(appointments[0].startTime)) {
         foundTime = searchStart;
       } else {
         // Check between appointments
@@ -134,7 +105,7 @@ export function useTimeSlot({
           const gapEnd = timeToMinutes(appointments[i + 1].startTime);
 
           const slotStart = Math.max(gapStart, searchStart);
-          if (slotStart + durationMinutes <= gapEnd) {
+          if (slotStart + duration <= gapEnd) {
             foundTime = slotStart;
             break;
           }
@@ -144,7 +115,7 @@ export function useTimeSlot({
         if (!foundTime) {
           const afterLast = timeToMinutes(appointments[appointments.length - 1].endTime);
           const slotStart = Math.max(afterLast, searchStart);
-          if (slotStart + durationMinutes <= businessHours.end * 60) {
+          if (slotStart + duration <= BUSINESS_HOURS.end * 60) {
             foundTime = slotStart;
           }
         }

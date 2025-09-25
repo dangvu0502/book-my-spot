@@ -58,6 +58,40 @@ export type TimeSlot = {
 };
 
 
+// API Response schemas
+export const createAppointmentResponseSchema = z.object({
+  success: z.literal(true),
+  appointment: appointmentSchema.extend({
+    confirmationCode: z.string(),
+  }),
+});
+
+export const cancelAppointmentResponseSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+});
+
+export const getAppointmentsByDateResponseSchema = z.object({
+  appointments: z.array(appointmentSchema),
+  businessHours: z.object({
+    start: z.number(),
+    end: z.number(),
+    defaultDuration: z.number(),
+  }),
+});
+
+export const errorResponseSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  statusCode: z.number(),
+});
+
+// API Response types
+export type CreateAppointmentResponse = z.infer<typeof createAppointmentResponseSchema>;
+export type CancelAppointmentResponse = z.infer<typeof cancelAppointmentResponseSchema>;
+export type GetAppointmentsByDateResponse = z.infer<typeof getAppointmentsByDateResponseSchema>;
+export type ErrorResponse = z.infer<typeof errorResponseSchema>;
+
 // Helper function to sanitize HTML/script content
 function sanitizeString(str: string) {
   // Remove any HTML tags and script content
