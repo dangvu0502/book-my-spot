@@ -4,11 +4,9 @@ import { randomUUID } from "crypto";
 
 export class Storage {
   private appointments: Map<string, Appointment>;
-  private slotLocks: Map<string, boolean>;
 
   constructor() {
     this.appointments = new Map();
-    this.slotLocks = new Map();
   }
 
   async getAppointment(id: string): Promise<Appointment | undefined> {
@@ -46,50 +44,35 @@ export class Storage {
     );
     const utcEndTime = calculateEndTime(utcTime, BUSINESS_HOURS.defaultDuration);
 
-    const slotKey = `${utcDate}-${utcTime}`;
+    // Check if slot is available using UTC date
+    const existingAppointments = await this.getAppointmentsByDate(utcDate);
+    const isAvailable = !existingAppointments.some(apt => apt.startTime === utcTime);
 
-    // Check if slot is being processed (locked)
-    if (this.slotLocks.get(slotKey)) {
+    if (!isAvailable) {
       return null;
     }
 
-    // Lock the slot
-    this.slotLocks.set(slotKey, true);
+    // Create the appointment with UTC times
+    const id = randomUUID();
+    const now = new Date().toISOString();
 
-    try {
-      // Check if slot is available using UTC date
-      const existingAppointments = await this.getAppointmentsByDate(utcDate);
-      const isAvailable = !existingAppointments.some(apt => apt.startTime === utcTime);
+    const appointment: Appointment = {
+      id,
+      customerName: insertAppointment.customerName,
+      customerEmail: insertAppointment.customerEmail,
+      date: utcDate,
+      startTime: utcTime,
+      endTime: utcEndTime,
+      status: "active",
+      notes: insertAppointment.notes || null,
+      cancelledAt: null,
+      cancellationReason: null,
+      createdAt: now,
+      updatedAt: now,
+    };
 
-      if (!isAvailable) {
-        return null;
-      }
-
-      // Create the appointment with UTC times
-      const id = randomUUID();
-      const now = new Date().toISOString();
-
-      const appointment: Appointment = {
-        id,
-        customerName: insertAppointment.customerName,
-        customerEmail: insertAppointment.customerEmail,
-        date: utcDate,
-        startTime: utcTime,
-        endTime: utcEndTime,
-        status: "active",
-        notes: insertAppointment.notes || null,
-        cancelledAt: null,
-        cancellationReason: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      this.appointments.set(id, appointment);
-      return appointment;
-    } finally {
-      // Always release the lock
-      this.slotLocks.delete(slotKey);
-    }
+    this.appointments.set(id, appointment);
+    return appointment;
   }
 }
 
