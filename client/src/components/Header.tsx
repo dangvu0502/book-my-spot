@@ -1,6 +1,5 @@
-import { Bell, Calendar, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/Theme";
+import { Calendar, User } from "lucide-react";
 
 export function Header() {
   return (

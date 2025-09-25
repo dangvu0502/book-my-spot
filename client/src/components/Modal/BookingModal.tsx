@@ -44,9 +44,15 @@ export function BookingModal({
     customerEmail?: string;
   }>({});
 
+  const { toast } = useToast();
+
   const createAppointment = useCreateAppointment();
   const dialogRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+
+  const isFormValid =
+    customerName.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
+    acceptedTerms;
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
@@ -91,8 +97,8 @@ export function BookingModal({
     try {
       // Format date in local timezone, not UTC
       const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+      const day = String(selectedDate.getDate()).padStart(2, "0");
       const localDateString = `${year}-${month}-${day}`;
 
       const appointmentData: InsertAppointment = {
@@ -131,11 +137,6 @@ export function BookingModal({
   useFocusTrap(dialogRef, isOpen);
 
   if (!selectedSlot) return null;
-
-  const isFormValid =
-    customerName.trim().length >= 2 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) &&
-    acceptedTerms;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentApi } from '@/lib/api';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/hooks';
 import { calculateAvailableSlots } from '@/lib/slotUtils';
 import type { InsertAppointment } from '@shared/schema';
 

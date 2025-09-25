@@ -1,43 +1,47 @@
-import { BookingModal } from "@/components/BookingModal";
-import { ConfirmationModal } from "@/components/ConfirmationModal";
 import { Header } from "@/components/Header";
+import { ModalProvider } from "@/components/Modal";
 import { TimeSlot } from "@/components/TimeSlot";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import type { TimeSlot as TimeSlotType } from "@shared/schema";
 import { addDays, startOfToday } from "date-fns";
 import { useState } from "react";
+import { useModals } from "@/hooks/useModals";
 
 export default function AppointmentBooking() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [month, setMonth] = useState(new Date());
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlotType | null>(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
-  const [confirmedAppointment, setConfirmedAppointment] = useState<any>(null);
   const today = startOfToday();
+
+  const {
+    modalState,
+    openBookingModal,
+    openConfirmationModal,
+    openCancelModal,
+    closeBookingModal,
+    closeConfirmationModal,
+    closeCancelModal
+  } = useModals();
 
   const handleSlotSelect = (slot: TimeSlotType) => {
     if (slot.available) {
-      setSelectedSlot(slot);
-      setShowBookingModal(true);
+      openBookingModal(slot, selectedDate);
     }
   };
 
   const handleBookingSuccess = (appointment: any) => {
-    setConfirmedAppointment(appointment);
-    setShowBookingModal(false);
-    setShowConfirmationModal(true);
+    closeBookingModal();
+    openConfirmationModal(appointment);
   };
 
-  const handleBookingModalClose = () => {
-    setShowBookingModal(false);
-    setSelectedSlot(null);
-  };
-
-  const handleConfirmationModalClose = () => {
-    setShowConfirmationModal(false);
-    setConfirmedAppointment(null);
+  const handleCancelClick = (slot: TimeSlotType) => {
+    const dateString = selectedDate.toISOString().split('T')[0];
+    openCancelModal(
+      slot.appointmentId || "",
+      slot.bookedBy || "",
+      slot.time,
+      dateString
+    );
   };
 
   return (
@@ -132,26 +136,21 @@ export default function AppointmentBooking() {
           </div>
 
           <div className="flex-1">
-              <TimeSlot
+            <TimeSlot
               selectedDate={selectedDate}
               onSlotSelect={handleSlotSelect}
+              onCancelClick={handleCancelClick}
             />
           </div>
         </div>
       </main>
 
-      <BookingModal
-        isOpen={showBookingModal}
-        onClose={handleBookingModalClose}
-        selectedSlot={selectedSlot}
-        selectedDate={selectedDate}
-        onSuccess={handleBookingSuccess}
-      />
-
-      <ConfirmationModal
-        isOpen={showConfirmationModal}
-        onClose={handleConfirmationModalClose}
-        appointment={confirmedAppointment}
+      <ModalProvider
+        modalState={modalState}
+        onBookingClose={closeBookingModal}
+        onBookingSuccess={handleBookingSuccess}
+        onConfirmationClose={closeConfirmationModal}
+        onCancelClose={closeCancelModal}
       />
     </div>
   );
